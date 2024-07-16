@@ -8,12 +8,6 @@ const app = express()
 app.use(express.json())
 app.use('/user', userRouter)
 app.use('/auth', authRouter)
-app.use('/work', workRouter)
-app.use('/schedule', scheduleRouter)
-app.use('/task', taskRouter)
-app.use('/subtask', subtaskRouter)
-app.use('/streak', streakRouter)
-app.use('/scheduleWorkDone', scheduleWorkDoneRouter)
 
 app.all('*', (req, res, next) => {
     return res.status(404).json({
