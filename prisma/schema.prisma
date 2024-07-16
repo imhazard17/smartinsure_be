@@ -1,0 +1,82 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DB_STRING_FOR_PRISMA")
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  password  String
+  firstName String
+  lastName  String
+  dob       DateTime @default(now())
+  role      Role     @default(POLICY_HOLDER)
+  dpUrl     String?
+  address   String
+  phone     Int
+  Policy    Policy[]
+}
+
+model Policy {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+  hospName  String
+  hospCity  String
+  desc      String
+  user      User     @relation(fields: [userId], references: [id])
+  userId    Int
+  Claim     Claim?
+}
+
+model Claim {
+  id               Int        @id @default(autoincrement())
+  createdAt        DateTime   @default(now())
+  desc             String
+  claimType        String
+  dateOfIntimation DateTime
+  claimAmount      Int
+  policy           Policy     @relation(fields: [policyId], references: [id])
+  policyId         Int        @unique
+  Documents        Document[]
+  Report           Report?
+}
+
+model Document {
+  id      Int     @id @default(autoincrement())
+  docType DocType
+  name    String
+  url     String
+  claim   Claim   @relation(fields: [claimId], references: [id])
+  claimId Int
+}
+
+model Report {
+  id                  Int     @id @default(autoincrement())
+  documentWiseSummary Json
+  combinedSummary     String
+  estimatedExpenses   Json
+  notes               String
+  approved            Boolean
+  claim               Claim   @relation(fields: [claimId], references: [id])
+  claimId             Int     @unique
+}
+
+model Otp {
+  id       Int      @id @default(autoincrement())
+  email    String
+  code     String
+  expireAt DateTime
+}
+
+enum Role {
+  POLICY_HOLDER
+  CLAIM_ASSESSOR
+}
+
+enum DocType {
+  SCAN
+  TEXT
+}
