@@ -11,7 +11,11 @@ const storage = multer.diskStorage({
         }
     },
     filename: (req, file, cb) => {
-        cb(null, crypto.randomBytes(15).toString('hex') + '.jpg')
+        if (file.mimetype === 'application/pdf') {
+            cb(null, 'text' + crypto.randomBytes(15).toString('hex') + '.pdf')
+        } else if (file.mimetype.startsWith('image/')) {
+            cb(null, 'scan' + crypto.randomBytes(15).toString('hex') + '.jpg')
+        }
     }
 })
 
@@ -21,7 +25,7 @@ module.exports = multer({
         fileSize: 3 * 1024 * 1024
     },
     fileFilter: (req, file, cb) => {
-        if (file.mimetype.startsWith('image/')) {
+        if (file.mimetype in ['image/jpeg', 'image/png', 'application/pdf']) {
             cb(null, true)
         } else {
             cb(new Error('Wrong filetype uploaded'))
