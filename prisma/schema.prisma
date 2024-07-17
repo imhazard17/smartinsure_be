@@ -9,7 +9,7 @@ datasource db {
 
 model User {
   id        Int      @id @default(autoincrement())
-  email     String
+  email     String   @unique
   password  String
   firstName String
   lastName  String
@@ -17,7 +17,7 @@ model User {
   role      Role     @default(POLICY_HOLDER)
   address   String
   phone     Int
-  Policy    Policy[]
+  policies    Policy[]
 }
 
 model Policy {
@@ -28,7 +28,7 @@ model Policy {
   desc      String
   user      User     @relation(fields: [userId], references: [id])
   userId    Int
-  Claim     Claim?
+  claim     Claim?
 }
 
 model Claim {
@@ -40,8 +40,8 @@ model Claim {
   claimAmount      Int
   policy           Policy     @relation(fields: [policyId], references: [id])
   policyId         Int        @unique
-  Documents        Document[]
-  Report           Report?
+  documents        Document[]
+  report           Report?
 }
 
 model Document {
