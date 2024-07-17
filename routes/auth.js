@@ -19,7 +19,7 @@ router.post('/signup', uplUserValidtn, errForward(async (req, res) => {
             firstName: req.body.firstName,
             lastName: req.body.lastName,
             dob: req.body.dob,
-            role: req.body.role,
+            role: "POLICY_HOLDER",
             address: req.body.address,
             phone: req.body.phone,
         },
@@ -34,7 +34,12 @@ router.post('/signup', uplUserValidtn, errForward(async (req, res) => {
         })
     }
 
-    const token = jwt.sign(createdUser.id, process.env.JWT_SECRET)
+    let jwtMsg = {
+        userId: createdUser.id,
+        role: "POLICY_HOLDER"
+    }
+
+    const token = jwt.sign(jwtMsg, process.env.JWT_SECRET)
 
     return res.status(201).json({
         msg: `successfully created account with username: ${req.headers.username}`,
@@ -67,7 +72,12 @@ router.get('/login', userValidtn, errForward(async (req, res) => {
         })
     }
 
-    const token = jwt.sign(user.id, process.env.JWT_SECRET)
+    let jwtMsg = {
+        userId: user.id,
+        role: user.role,
+    }
+
+    const token = jwt.sign(jwtMsg, process.env.JWT_SECRET)
 
     return res.status(200).json({
         msg: `successfully logged into account with username: ${user.username}`,

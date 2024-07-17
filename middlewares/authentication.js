@@ -12,7 +12,8 @@ function authentication(req, res, next) {
     try {
         const jwtVerifyRes = jwt.verify(authToken, process.env.JWT_SECRET)
         req.locals = {}
-        req.locals.userId = parseInt(jwtVerifyRes)
+        req.locals.userId = parseInt(jwtVerifyRes.userId)
+        req.locals.role = jwtVerifyRes.role
         next()
     } catch(e) {
         return res.status(403).json({
