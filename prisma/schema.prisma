@@ -9,12 +9,12 @@ datasource db {
 
 model User {
   id        Int      @id @default(autoincrement())
+  email     String
   password  String
   firstName String
   lastName  String
   dob       DateTime @default(now())
   role      Role     @default(POLICY_HOLDER)
-  dpUrl     String?
   address   String
   phone     Int
   Policy    Policy[]
