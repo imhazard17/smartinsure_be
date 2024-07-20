@@ -4,31 +4,34 @@ const errForward = require('../utils/errorForward')
 const prisma = require('../utils/db')
 const router = require("express").Router;
 const auth = require('../middlewares/authentication')
-const fs = require('node:fs/promises')
+const bcrypt = require('bcrypt')
 
 // GET /user/details/:userId  ==> only for Claim assessor
-router.get('/details/:userId', auth, errForward(async (req, res) => {}))
+router.get('/details/:userId', auth, errForward(async (req, res) => {
+    if(req.locals.role !== "CLAIM_ASSESSOR") {
+        return res.status(400).json({
+            err: 'Insuffient privilages to make this action'
+        })
+    }
 
-// GET /user/my-details
-router.get('/my-details', auth, errForward(async (req, res) => {
     const user = await prisma.user.findUnique({
         where: {
-            id: req.locals.userId,
+            id: req.params.userId,
         },
         include: {
-            tasks: true,
-            schedules: true,
-            _count: {
-                select: {
-                    tasks: true,
-                    schedules: true
+            policies: true,
+            policies: {
+                include: {
+                    claim: true
                 }
             },
-            streaks: {
-                some: {
-                    endDate: null,
-                }
-            },
+            email: true,
+            firstName: true,
+            lastName: true,
+            dob: true,
+            role: true,
+            address: true,
+            phone: true
         }
     })
 
@@ -38,50 +41,39 @@ router.get('/my-details', auth, errForward(async (req, res) => {
         })
     }
 
-    delete user.password
     return res.status(200).json(user)
 }))
 
-// PUT /user/change-details
-router.put('/change-details', auth, uplUserValidtn, upload.single('file'), errForward(async (req, res) => {
-    const userId = req.locals.userId
-
+// GET /user/my-details
+router.get('/my-details', auth, errForward(async (req, res) => {
     const user = await prisma.user.findUnique({
         where: {
-            id: userId,
+            id: req.locals.userId,
         },
-        select: {
-            dpUrl: true,
+        include: {
+            policies: true,
+            policies: {
+                include: {
+                    claim: true
+                }
+            },
+            email: true,
+            firstName: true,
+            lastName: true,
+            dob: true,
+            role: true,
+            address: true,
+            phone: true
         }
     })
 
-    const updatedUser = await prisma.user.update({
-        where: {
-            id: userId,
-        },
-        data: {
-            username: req.headers.username,
-            bio: req.headers.bio,
-            password: req.headers.password,
-            firstName: req.headers.firstName,
-            lastName: req.headers.lastName,
-            doj: req.headers.doj,
-            dpUrl: req.file?.path,
-        }
-    })
-
-    if (!updatedUser) {
+    if (!user) {
         return res.status(404).json({
-            err: 'Could not update user details'
+            err: 'Error getting user details'
         })
     }
 
-    if(user) {
-        fs.unlink(user.dpUrl)
-    }
-
-    delete updatedUser.password
-    return res.status(200).json(updatedUser)
+    return res.status(200).json(user)
 }))
 
 // DELETE /user/delete-account
@@ -89,6 +81,7 @@ router.delete('/delete-account', auth, errForward(async (req, res) => {
     const user = await prisma.user.delete({
         where: {
             id: req.locals.userId,
+            password: bcrypt.hashSync(req.body.password, 10),
         },
         select: {
             id: true,
@@ -102,7 +95,34 @@ router.delete('/delete-account', auth, errForward(async (req, res) => {
     }
 
     return res.status(200).json({
-        err: 'User deleted successfully'
+        msg: 'User deleted successfully'
+    })
+}))
+
+// PUT /user/promote-to-claim-assessor/:userId
+router.put('/promote-to-claim-assessor/:userId', auth, errForward(async (req, res) => {
+    if(req.locals.role !== "CLAIM_ASSESSOR") {
+        return res.status(400).json({
+            err: 'Insuffient privilages to make this action'
+        })
+    }
+
+    const resp = await prisma.user.update({
+        data: {
+            role: "CLAIM_ASSESSOR"
+        },
+        where: {
+            userId: req.params.userId,
+        },
+        include: {
+            id: true,
+            role: true
+        }
+    })
+
+    return res.status(200).json({
+        msg: 'User promoted to claim assessor successfully',
+        ...resp
     })
 }))
 

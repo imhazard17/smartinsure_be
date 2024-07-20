@@ -4,14 +4,106 @@ const { uplUserValidtn, userValidtn } = require('../middlewares/input_validation
 const errForward = require('../utils/errorForward')
 const prisma = require('../utils/db')
 const bcrypt = require('bcrypt')
+const crypto = require('crypto')
+const nodemailer = require('nodemailer');
 
-// POST /auth/verify-email
-router.post('/verify-email', uplUserValidtn, upload.single('file'), errForward(async (req, res) => {
-    
+function addMinutesToDate(date, minutes) {
+    return new Date(date.getTime() + minutes * 60000);
+}
+
+// POST /auth/send-otp/:email
+router.post('/send-otp/:email', uplUserValidtn, upload.single('file'), errForward(async (req, res) => {
+    // check if email already used
+    // if not delete all otps on that email previously then send otp to the mail
+    const emailExists = await prisma.user.findUnique({
+        where: {
+            email: req.params.email
+        },
+        select: {
+            id: true
+        }
+    })
+
+    if (emailExists) {
+        return res.status(400).json({
+            err: `user already exists with email ${req.params.email}`
+        })
+    }
+
+    await prisma.otp.deleteMany({
+        where: {
+            email: req.params.email,
+        }
+    })
+
+    const code = crypto.randomBytes(15).toString('hex')
+
+    var transporter = nodemailer.createTransport({
+        service: 'gmail',
+        auth: {
+            user: process.env.NODEMAILER_EMAIL,
+            pass: process.env.NODEMAILER_PASSWORD,
+        }
+    });
+
+    var mailOptions = {
+        from: process.env.NODEMAILER_EMAIL,
+        to: req.params.email,
+        subject: 'OTP for SmartInsure signup',
+        text: `The otp for SmartInsure is: ${code}\n\nONLY VALID FOR 5 MINUTES\n\nDO NOT SHARE WITH ANYBODY`
+    };
+
+    transporter.sendMail(mailOptions, async (error, _) => {
+        if (error) {
+            return res.status(500).json({
+                err: 'Could not send otp'
+            })
+        }
+
+        await prisma.otp.create({
+            data: {
+                code: code,
+                email: req.params.email,
+                expireAt: addMinutesToDate(new Date(), 5)
+            }
+        })
+
+        return res.status(500).json({
+            email: req.params.email,
+            msg: 'sucessfully sent otp'
+        })
+    });
 }))
 
 // POST /auth/signup
-router.post('/signup', uplUserValidtn, errForward(async (req, res) => {
+router.post('/signup', errForward(async (req, res) => {
+    // while signup verify email takes email and generates otp which is valid for next 5 mins
+    // first take the user signup details send them as req body to this endpt
+    // then accept otp and see if it matches the otp with the email with exp time less than current time
+    // if yes create new user
+
+    const validOtp = await prisma.otp.findFirst({
+        where: {
+            email: req.body.email,
+            code: req.body.otp,
+            expireAt: {
+                lt: new Date()
+            }
+        },
+        select: {
+            id: true
+        },
+        orderBy: {
+            expireAt: 'desc'
+        }
+    })
+
+    if (!validOtp) {
+        return res.status(400).json({
+            err: 'otp incorrect or expired'
+        })
+    }
+
     const createdUser = await prisma.user.create({
         data: {
             email: req.body.email,
@@ -19,7 +111,7 @@ router.post('/signup', uplUserValidtn, errForward(async (req, res) => {
             firstName: req.body.firstName,
             lastName: req.body.lastName,
             dob: req.body.dob,
-            role: "POLICY_HOLDER",
+            role: req.body.role,
             address: req.body.address,
             phone: req.body.phone,
         },
@@ -75,7 +167,7 @@ router.get('/login', userValidtn, errForward(async (req, res) => {
     let jwtMsg = {
         userId: user.id,
         role: user.role,
-    }
+    }    
 
     const token = jwt.sign(jwtMsg, process.env.JWT_SECRET)
 
