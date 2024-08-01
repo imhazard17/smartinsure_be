@@ -9,8 +9,8 @@ function addMinutesToDate(date, minutes) {
     return new Date(date.getTime() + minutes * 60000);
 }
 
-// POST /auth/send-otp/:email
-router.post('/send-otp/:email', errForward(async (req, res) => {
+// GET /auth/send-otp/:email
+router.get('/send-otp/:email', errForward(async (req, res) => {
     // check if email already used
     // if not delete all otps on that email previously then send otp to the mail
     const emailExists = await prisma.user.findUnique({
