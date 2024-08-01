@@ -15,7 +15,7 @@ router.get('/my-claims', auth, errForward(async (req, res) => {
         }
     })
 
-    if(!claim) {
+    if (!claim) {
         return res.status(400).json({
             err: 'No claims yet'
         })
@@ -36,7 +36,7 @@ router.get('/:id', errForward(async (req, res) => {
         }
     })
 
-    if(!claim) {
+    if (!claim) {
         return res.status(400).json({
             err: 'No such claim found'
         })
@@ -63,7 +63,7 @@ router.get('/claim/user/:userId', errForward(async (req, res) => {
         }
     })
 
-    if(!claims) {
+    if (!claims) {
         return res.status(400).json({
             err: 'No such claims found'
         })
@@ -80,6 +80,12 @@ router.get('/claim/user/:userId', errForward(async (req, res) => {
 
 // POST /claim/new
 router.post('/new', errForward(async (req, res) => {
+    if (req.locals.role === "CLAIM_ASSESSOR") {
+        return res.status(400).json({
+            err: 'Only policy holders can make claims'
+        })
+    }
+
     const claim = await prisma.claim.create({
         data: {
             claimAmount: req.body.claimAmount,
@@ -94,15 +100,9 @@ router.post('/new', errForward(async (req, res) => {
         }
     })
 
-    if(!claim) {
+    if (!claim) {
         return res.status(500).json({
             err: 'Failed to create claim'
-        })
-    }
-
-    if (req.locals.role === "CLAIM_ASSESSOR") {
-        return res.status(400).json({
-            err: 'Only policy holders can make claims'
         })
     }
 
@@ -111,6 +111,12 @@ router.post('/new', errForward(async (req, res) => {
 
 // PUT /claim/update/:id
 router.put('/update/:id', errForward(async (req, res) => {
+    if (req.locals.role === "CLAIM_ASSESSOR") {
+        return res.status(400).json({
+            err: 'Only policy holders can make claims'
+        })
+    }
+
     const claim = await prisma.claim.update({
         where: {
             id: prisma.claim.id,
@@ -127,7 +133,7 @@ router.put('/update/:id', errForward(async (req, res) => {
         }
     })
 
-    if(!claim) {
+    if (!claim) {
         return res.status(500).json({
             err: 'Failed to update claim'
         })
@@ -150,7 +156,7 @@ router.delete('/delete/:id', errForward(async (req, res) => {
         }
     })
 
-    if(!claim) {
+    if (!claim) {
         return res.status(500).json({
             err: 'Failed to delete claim'
         })
