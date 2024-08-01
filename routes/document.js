@@ -27,8 +27,8 @@ router.get('/:id', auth, errForward(async (req, res) => {
         })
     }
 
-    const url = await getObjectUrl(`documents/${document.name}`)
-    return res.redirect(url)
+    const s3Url = await getObjectUrl(`documents/${document.name}`)
+    return res.status(200).json({ url: s3Url })
 }))
 
 // GET /document/count/:claimId
