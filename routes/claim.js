@@ -78,7 +78,7 @@ router.get('/claim/user/:userId', errForward(async (req, res) => {
     return res.status(200).json(claims)
 }))
 
-// POST /claim/new/:policyId
+// POST /claim/new
 router.post('/new', errForward(async (req, res) => {
     const claim = await prisma.claim.create({
         data: {
@@ -86,7 +86,7 @@ router.post('/new', errForward(async (req, res) => {
             claimType: req.body.claimType,
             dateOfIntimation: req.body.dateOfIntimation,
             desc: req.body.desc,
-            policyId: req.params.policyId,
+            policyId: req.body.policyId,
             userId: req.locals.userId
         },
         select: {
