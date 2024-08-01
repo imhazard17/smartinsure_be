@@ -27,8 +27,8 @@ router.get('/:id', auth, errForward(async (req, res) => {
         })
     }
 
-    const s3Url = await getObjectUrl(`documents/${document.name}`)
-    return res.status(200).json({ url: s3Url })
+    const url = await getObjectUrl(`documents/${document.name}`)
+    return res.status(200).json({ url: url, ...document })
 }))
 
 // GET /document/count/:claimId
@@ -93,7 +93,7 @@ router.get('/:claimId', auth, errForward(async (req, res) => {
     docs.forEach(async (doc) => {
         const url = await getObjectUrl(`documents/${doc.name}`)
         resp.push({
-            name: doc.originalName,
+            ...doc,
             url: url
         })
     })
