@@ -143,8 +143,8 @@ router.post('/signup', errForward(async (req, res) => {
     })
 }))
 
-// GET /auth/login
-router.get('/login', errForward(async (req, res) => {
+// POST /auth/login
+router.post('/login', errForward(async (req, res) => {
     const user = await prisma.user.findUnique({
         where: {
             email: req.body.username
