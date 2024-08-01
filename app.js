@@ -10,6 +10,7 @@ const error = require('./middlewares/error')
 const app = express()
 
 app.use(express.json())
+app.use(error)
 app.use('/claim', claimRouter)
 app.use('/report', reportRouter)
 app.use('/policy', policyRouter)
@@ -23,8 +24,6 @@ app.all('*', (req, res, next) => {
     })
 })
 
-app.use(error)
-
-app.listen(3001, () => {
-    console.log('Listening on port 3001')
+app.listen(process.env.SERVER_PORT, () => {
+    console.log(`Listening on port: ${process.env.SERVER_PORT}`)
 })
