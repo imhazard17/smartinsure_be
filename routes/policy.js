@@ -43,7 +43,7 @@ router.get('/:id', auth, errForward(async (req, res) => {
 }))
 
 // GET /policy/list/:userId
-router.get('/:id', auth, errForward(async (req, res) => {
+router.get('/list/:userId', auth, errForward(async (req, res) => {
     const policies = await prisma.policy.findMany({
         where: {
             userId: req.params.userId,
