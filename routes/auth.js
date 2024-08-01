@@ -138,7 +138,7 @@ router.post('/signup', errForward(async (req, res) => {
     const token = jwt.sign(jwtMsg, process.env.JWT_SECRET)
 
     return res.status(201).json({
-        msg: `successfully created account with username: ${req.headers.username}`,
+        msg: `successfully created account with id: ${createdUser.id}`,
         authToken: token
     })
 }))
@@ -147,7 +147,7 @@ router.post('/signup', errForward(async (req, res) => {
 router.post('/login', errForward(async (req, res) => {
     const user = await prisma.user.findUnique({
         where: {
-            email: req.body.username
+            email: req.body.email
         },
         select: {
             id: true,
@@ -177,7 +177,7 @@ router.post('/login', errForward(async (req, res) => {
     const token = jwt.sign(jwtMsg, process.env.JWT_SECRET)
 
     return res.status(200).json({
-        msg: `successfully logged into account with username: ${user.username}`,
+        msg: `successfully logged into account with user id: ${user.id}`,
         authToken: token
     })
 }))
