@@ -169,12 +169,12 @@ router.post('/upload/:claimId', auth, upload.array('files', 15), errForward(asyn
     })
     try {
         await Promise.all(uploads)
-        return req.status(200).json({
+        return res.status(200).json({
             msg: 'Documents created successfully',
             docIds: documentIds
         })
     } catch {
-        return req.status(500).json({
+        return res.status(500).json({
             err: 'document creation failed'
         })
     }
@@ -234,12 +234,12 @@ router.post('/upload/:claimId', auth, upload.single('file'), errForward(async (r
             })
         }
         fs.unlinkSync(file.path)
-        return req.status(200).json({
+        return res.status(200).json({
             msg: 'Documents created successfully',
             docIds: documentIds
         })
     } catch {
-        return req.status(500).json({
+        return res.status(500).json({
             err: 'document creation failed'
         })
     }
