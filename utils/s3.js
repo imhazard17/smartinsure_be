@@ -14,7 +14,7 @@ const s3Client = new S3Client({
 
 exports.getObjectUrl = async (key) => {
     const command = new GetObjectCommand({
-        Bucket: process.env.S3_BUCKET_NAME,  // internb2
+        Bucket: process.env.S3_BUCKET_NAME,
         Key: key
     });
 
