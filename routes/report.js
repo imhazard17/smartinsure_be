@@ -47,7 +47,7 @@ router.get('/generate/:claimId', errForward(async (req, res) => {
         }
     })
 
-    const folderPath = path.join(__dirname, uuid())
+    const folderPath = path.join(__dirname, '..', uuid())
     fs.mkdirSync(folderPath);
     await Promise.all(docs.map(async (doc) => {
         const url = await getObjectUrl(`documents/${doc.name}`)
