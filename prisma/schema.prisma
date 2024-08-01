@@ -18,9 +18,9 @@ model User {
   address   String
   phone     Int
   policies  Policy[]
-  Claim     Claim[]
-  Document  Document[]
-  Report    Report[]
+  claims    Claim[]
+  documents Document[]
+  reports   Report[]
 }
 
 model Policy {
@@ -29,9 +29,9 @@ model Policy {
   hospName  String
   hospCity  String
   desc      String
-  user      User     @relation(fields: [userId], references: [id])
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId    Int
-  claim     Claim?
+  claims    Claim[]
 }
 
 model Claim {
@@ -41,36 +41,51 @@ model Claim {
   claimType        String
   dateOfIntimation DateTime
   claimAmount      Int
-  policy           Policy     @relation(fields: [policyId], references: [id])
+  policy           Policy     @relation(fields: [policyId], references: [id], onDelete: Cascade)
   policyId         Int        @unique
   documents        Document[]
   report           Report?
-  user             User       @relation(fields: [userId], references: [id])
+  user             User       @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId           Int
 }
 
 model Document {
-  id      Int     @id @default(autoincrement())
-  docType DocType
-  name    String
-  url     String
-  claim   Claim   @relation(fields: [claimId], references: [id])
-  claimId Int
-  user    User    @relation(fields: [userId], references: [id])
-  userId  Int
+  id           Int     @id @default(autoincrement())
+  docType      DocType
+  name         String
+  originalName String
+  claim        Claim   @relation(fields: [claimId], references: [id], onDelete: Cascade)
+  claimId      Int
+  user         User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId       Int
 }
 
 model Report {
-  id                  Int     @id @default(autoincrement())
-  documentWiseSummary Json
+  id                  Int                  @id @default(autoincrement())
   combinedSummary     String
-  estimatedExpenses   Json
-  notes               String
-  approved            Boolean
-  claim               Claim   @relation(fields: [claimId], references: [id])
-  claimId             Int     @unique
-  user                User    @relation(fields: [userId], references: [id])
+  estimatedExpenses   Int
+  notes               String?
+  approved            Boolean?
+  claim               Claim                @relation(fields: [claimId], references: [id], onDelete: Cascade)
+  claimId             Int                  @unique
+  user                User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId              Int
+  docWiseReport       DocWiseReport?
+  alternateTreatments AlternateTreatments?
+}
+
+model DocWiseReport {
+  id       Int    @id @default(autoincrement())
+  text     Json
+  report   Report @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  reportId Int    @unique
+}
+
+model AlternateTreatments {
+  id       Int    @id @default(autoincrement())
+  text     Json
+  report   Report @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  reportId Int    @unique
 }
 
 model Otp {

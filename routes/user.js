@@ -1,5 +1,4 @@
 const router = require("express").Router;
-const upload = require('../middlewares/multer')
 const errForward = require('../utils/errorForward')
 const prisma = require('../utils/db')
 const router = require("express").Router;
@@ -8,7 +7,7 @@ const bcrypt = require('bcrypt')
 
 // GET /user/details/:userId  ==> only for Claim assessor
 router.get('/details/:userId', auth, errForward(async (req, res) => {
-    if(req.locals.role !== "CLAIM_ASSESSOR") {
+    if (req.locals.role !== "CLAIM_ASSESSOR") {
         return res.status(400).json({
             err: 'Insuffient privilages to make this action'
         })
@@ -20,18 +19,8 @@ router.get('/details/:userId', auth, errForward(async (req, res) => {
         },
         include: {
             policies: true,
-            policies: {
-                include: {
-                    claim: true
-                }
-            },
-            email: true,
-            firstName: true,
-            lastName: true,
-            dob: true,
-            role: true,
-            address: true,
-            phone: true
+            claim: true,
+            document: true
         }
     })
 
@@ -52,18 +41,8 @@ router.get('/my-details', auth, errForward(async (req, res) => {
         },
         include: {
             policies: true,
-            policies: {
-                include: {
-                    claim: true
-                }
-            },
-            email: true,
-            firstName: true,
-            lastName: true,
-            dob: true,
-            role: true,
-            address: true,
-            phone: true
+            claim: true,
+            document: true
         }
     })
 
@@ -101,7 +80,7 @@ router.delete('/delete-account', auth, errForward(async (req, res) => {
 
 // PUT /user/promote-to-claim-assessor/:userId
 router.put('/promote-to-claim-assessor/:userId', auth, errForward(async (req, res) => {
-    if(req.locals.role !== "CLAIM_ASSESSOR") {
+    if (req.locals.role !== "CLAIM_ASSESSOR") {
         return res.status(400).json({
             err: 'Insuffient privilages to make this action'
         })
@@ -114,7 +93,7 @@ router.put('/promote-to-claim-assessor/:userId', auth, errForward(async (req, re
         where: {
             userId: req.params.userId,
         },
-        include: {
+        select: {
             id: true,
             role: true
         }

@@ -9,14 +9,20 @@
   "author": "Rajarshi Barman & Diya Das",
   "license": "ISC",
   "dependencies": {
-    "archiver": "^7.0.1",
+    "@aws-sdk/client-s3": "^3.621.0",
+    "@aws-sdk/s3-request-presigner": "^3.621.0",
+    "@google/generative-ai": "^0.16.0",
+    "@prisma/client": "^5.17.0",
+    "axios": "^1.7.2",
     "bcrypt": "^5.1.1",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
     "jsonwebtoken": "^9.0.2",
+    "mime-types": "^2.1.35",
     "multer": "^1.4.5-lts.1",
     "prisma": "^5.17.0",
+    "uuid": "^10.0.0",
     "zod": "^3.23.8"
   }
 }

@@ -1,6 +1,4 @@
 const router = require("express").Router;
-const upload = require('../middlewares/multer')
-const { uplUserValidtn, userValidtn } = require('../middlewares/input_validation')
 const errForward = require('../utils/errorForward')
 const prisma = require('../utils/db')
 const bcrypt = require('bcrypt')
@@ -12,7 +10,7 @@ function addMinutesToDate(date, minutes) {
 }
 
 // POST /auth/send-otp/:email
-router.post('/send-otp/:email', uplUserValidtn, upload.single('file'), errForward(async (req, res) => {
+router.post('/send-otp/:email', errForward(async (req, res) => {
     // check if email already used
     // if not delete all otps on that email previously then send otp to the mail
     const emailExists = await prisma.user.findUnique({
@@ -140,7 +138,7 @@ router.post('/signup', errForward(async (req, res) => {
 }))
 
 // GET /auth/login
-router.get('/login', userValidtn, errForward(async (req, res) => {
+router.get('/login', errForward(async (req, res) => {
     const user = await prisma.user.findUnique({
         where: {
             email: req.body.username
@@ -148,7 +146,8 @@ router.get('/login', userValidtn, errForward(async (req, res) => {
         select: {
             id: true,
             email: true,
-            password: true
+            password: true,
+            role: true,
         }
     })
 
@@ -158,7 +157,7 @@ router.get('/login', userValidtn, errForward(async (req, res) => {
         })
     }
 
-    if (bcrypt.compareSync(req.body.password, user.password) === false) {
+    if (!bcrypt.compareSync(req.body.password, user.password)) {
         return res.status(404).json({
             err: 'email or password incorrect'
         })

@@ -13,7 +13,7 @@ router.get('/:id', auth, errForward(async (req, res) => {
         },
         include: {
             user: {
-                include: {
+                select: {
                     firstName: true,
                     lastName: true,
                     id: true,
@@ -23,11 +23,7 @@ router.get('/:id', auth, errForward(async (req, res) => {
                 include: {
                     id: true
                 }
-            },
-            hospName: true,
-            hospCity: true,
-            createdAt: true,
-            desc: true
+            }
         }
     })
 
