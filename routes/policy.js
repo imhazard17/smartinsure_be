@@ -1,4 +1,4 @@
-const router = require("express").Router;
+const router = require("express").Router();
 const errForward = require('../utils/errorForward')
 const auth = require('../middlewares/authentication');
 const prisma = require("../utils/db");

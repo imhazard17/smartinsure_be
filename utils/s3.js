@@ -5,7 +5,7 @@ const https = require('https');
 const fs = require('fs');
 
 const s3Client = new S3Client({
-    region: 'us-east-1',
+    region: process.env.S3_BUCKET_REGION,
     credentials: {
         accessKeyId: process.env.S3_ACCESS_KEY,
         secretAccessKey: process.env.S3_SECRET_KEY
@@ -14,7 +14,7 @@ const s3Client = new S3Client({
 
 exports.getObjectUrl = async (key) => {
     const command = new GetObjectCommand({
-        Bucket: "smartinsure-project",
+        Bucket: process.env.S3_BUCKET_NAME,  // internb2
         Key: key
     });
 
@@ -24,7 +24,7 @@ exports.getObjectUrl = async (key) => {
 
 exports.putObjectUrl = async (contentType, key) => {
     const command = new PutObjectCommand({
-        Bucket: "smartinsure-project",
+        Bucket: process.env.S3_BUCKET_NAME,
         Key: key,
         ContentType: contentType
     });
@@ -35,7 +35,7 @@ exports.putObjectUrl = async (contentType, key) => {
 
 exports.deleteObject = async (key) => {
     const command = new GetObjectCommand({
-        Bucket: "smartinsure-project",
+        Bucket: process.env.S3_BUCKET_NAME,
         Key: key
     });
 
@@ -60,5 +60,3 @@ exports.downloadFile = (url, filePath) => {
         });
     })
 }
-
-
