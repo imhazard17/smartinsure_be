@@ -89,9 +89,7 @@ router.get('/:claimId', auth, errForward(async (req, res) => {
         }
     })
 
-    const urls = await Promise.all(docs.map(doc => {
-        getObjectUrl(`documents/${doc.name}`)
-    }))
+    const urls = await Promise.all(docs.map(doc => getObjectUrl(`documents/${doc.name}`)))
 
     const resp = urls.map((url, i) => {
         return {
