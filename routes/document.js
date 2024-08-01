@@ -6,6 +6,7 @@ const upload = require('../middlewares/multer')
 const { putObjectUrl, getObjectUrl, deleteObject } = require("../utils/s3");
 const { default: axios } = require("axios");
 const fs = require("fs");
+const { url } = require("inspector");
 
 // GET /document/:id
 router.get('/:id', auth, errForward(async (req, res) => {
@@ -88,14 +89,15 @@ router.get('/:claimId', auth, errForward(async (req, res) => {
         }
     })
 
-    const resp = []
+    const urls = await Promise.all(docs.map(doc => {
+        getObjectUrl(`documents/${doc.name}`)
+    }))
 
-    docs.forEach(async (doc) => {
-        const url = await getObjectUrl(`documents/${doc.name}`)
-        resp.push({
-            ...doc,
+    const resp = urls.map((url, i) => {
+        return {
+            ...docs[i],
             url: url
-        })
+        }
     })
 
     return res.status(200).json({
