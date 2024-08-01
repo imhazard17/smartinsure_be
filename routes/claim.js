@@ -146,6 +146,12 @@ router.put('/update/:id', errForward(async (req, res) => {
 
 // DELETE /claim/delete/:id
 router.delete('/delete/:id', errForward(async (req, res) => {
+    if (req.locals.role === "CLAIM_ASSESSOR") {
+        return res.status(400).json({
+            err: 'Only policy holders can make claims'
+        })
+    }
+
     const claim = await prisma.claim.delete({
         where: {
             id: req.params.id,
