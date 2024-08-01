@@ -8,6 +8,10 @@ router.get('/my-claims', auth, errForward(async (req, res) => {
     const claim = await prisma.claim.findMany({
         where: {
             userId: req.locals.userId
+        },
+        include: {
+            report: true,
+            documents: true
         }
     })
 
@@ -25,6 +29,10 @@ router.get('/:id', errForward(async (req, res) => {
     const claim = await prisma.claim.findUnique({
         where: {
             id: req.params.id
+        },
+        include: {
+            report: true,
+            documents: true
         }
     })
 
@@ -48,6 +56,10 @@ router.get('/claim/user/:userId', errForward(async (req, res) => {
     const claims = await prisma.claim.findMany({
         where: {
             id: req.params.userId
+        },
+        include: {
+            report: true,
+            documents: true
         }
     })
 
