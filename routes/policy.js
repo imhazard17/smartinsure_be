@@ -42,6 +42,43 @@ router.get('/:id', auth, errForward(async (req, res) => {
     return res.status(200).json(policy)
 }))
 
+// GET /policy/list/:userId
+router.get('/:id', auth, errForward(async (req, res) => {
+    const policies = await prisma.policy.findMany({
+        where: {
+            userId: req.params.userId,
+        },
+        include: {
+            user: {
+                select: {
+                    firstName: true,
+                    lastName: true,
+                    id: true,
+                }
+            },
+            claim: {
+                include: {
+                    id: true
+                }
+            }
+        }
+    })
+
+    if(policies.user.id !== req.locals.userId && req.locals.role !== "CLAIM_ASSESSOR") {
+        return res.status(400).json({
+            err: 'Insufficient privilages to access'
+        })
+    }
+
+    if(!policies) {
+        return res.status(404).json({
+            err: 'Could not find the policy'
+        })
+    }
+
+    return res.status(200).json(policies)
+}))
+
 // POST /policy/new
 router.post('/new', auth, errForward(async (req, res) => {
     if(req.locals.role !== "CLAIM_ASSESSOR") {
