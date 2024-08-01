@@ -1,5 +1,5 @@
 const multer = require('multer')
-const crypto = require('crypto')
+const { v6: uuid } = require('uuid')
 
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
@@ -12,9 +12,9 @@ const storage = multer.diskStorage({
     },
     filename: (req, file, cb) => {
         if (file.mimetype === 'application/pdf') {
-            cb(null, 'text' + crypto.randomBytes(15).toString('hex') + '.pdf')
+            cb(null, 'text' + uuid() + '.pdf')
         } else if (file.mimetype.startsWith('image/')) {
-            cb(null, 'scan' + crypto.randomBytes(15).toString('hex') + '.jpg')
+            cb(null, 'scan' + uuid() + '.jpg')
         }
     }
 })

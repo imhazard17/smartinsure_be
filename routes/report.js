@@ -5,6 +5,7 @@ const generateReport = require('../utils/gemini')
 const path = require('path')
 const fs = require('fs')
 const { getObjectUrl, downloadFile } = require('../utils/s3')
+const { v6: uuid } = require('uuid')
 
 // GET /report/generate/:claimId   ==> use llms to generate report of claim and save the report to db
 router.get('/generate/:claimId', errForward(async (req, res) => {
