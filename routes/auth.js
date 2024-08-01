@@ -115,7 +115,7 @@ router.post('/signup', errForward(async (req, res) => {
             firstName: req.body.firstName,
             lastName: req.body.lastName,
             dob: req.body.dob,
-            role: req.body.role,
+            role: "POLICY_HOLDER",
             address: req.body.address,
             phone: req.body.phone,
         },
