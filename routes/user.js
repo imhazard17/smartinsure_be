@@ -14,12 +14,12 @@ router.get('/details/:userId', auth, errForward(async (req, res) => {
 
     const user = await prisma.user.findUnique({
         where: {
-            id: req.params.userId,
+            id: parseInt(req.params.userId),
         },
         include: {
             policies: true,
-            claim: true,
-            document: true
+            claims: true,
+            documents: true
         }
     })
 
@@ -28,6 +28,8 @@ router.get('/details/:userId', auth, errForward(async (req, res) => {
             err: 'Error getting user details'
         })
     }
+
+    delete user['password']
 
     return res.status(200).json(user)
 }))
@@ -36,12 +38,12 @@ router.get('/details/:userId', auth, errForward(async (req, res) => {
 router.get('/my-details', auth, errForward(async (req, res) => {
     const user = await prisma.user.findUnique({
         where: {
-            id: req.locals.userId,
+            id: parseInt(req.locals.userId),
         },
         include: {
             policies: true,
-            claim: true,
-            document: true
+            claims: true,
+            documents: true
         }
     })
 
@@ -51,18 +53,19 @@ router.get('/my-details', auth, errForward(async (req, res) => {
         })
     }
 
+    delete user['password']
+
     return res.status(200).json(user)
 }))
 
 // DELETE /user/delete-account
 router.delete('/delete-account', auth, errForward(async (req, res) => {
-    const user = await prisma.user.delete({
+    const user = await prisma.user.findUnique({
         where: {
-            id: req.locals.userId,
-            password: bcrypt.hashSync(req.body.password, 10),
+            id: parseInt(req.locals.userId),
         },
         select: {
-            id: true,
+            password: true,
         }
     })
 
@@ -72,8 +75,29 @@ router.delete('/delete-account', auth, errForward(async (req, res) => {
         })
     }
 
+    if (!bcrypt.compareSync(req.body.password, user.password)) {
+        return res.status(404).json({
+            err: 'password incorrect'
+        })
+    }
+
+    const deletedUser = await prisma.user.delete({
+        where: {
+            id: parseInt(req.locals.userId),
+        },
+        select: {
+            id: true,
+        }
+    })
+
+    if (!deletedUser) {
+        return res.status(404).json({
+            err: 'Error deleting user'
+        })
+    }
+
     return res.status(200).json({
-        msg: 'User deleted successfully'
+        msg: `User with id: ${deletedUser.id} deleted successfully`
     })
 }))
 
@@ -90,7 +114,7 @@ router.put('/promote-to-claim-assessor/:userId', auth, errForward(async (req, re
             role: "CLAIM_ASSESSOR"
         },
         where: {
-            userId: req.params.userId,
+            id: parseInt(req.params.userId),
         },
         select: {
             id: true,

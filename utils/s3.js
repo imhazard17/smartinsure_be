@@ -1,5 +1,5 @@
 const { getSignedUrl } = require("@aws-sdk/s3-request-presigner");
-const { S3Client, GetObjectCommand, PutObjectCommand } = require("@aws-sdk/client-s3");
+const { S3Client, GetObjectCommand, PutObjectCommand, DeleteObjectCommand } = require("@aws-sdk/client-s3");
 require('dotenv').config()
 const https = require('https');
 const fs = require('fs');
@@ -34,17 +34,13 @@ exports.putObjectUrl = async (contentType, key) => {
 }
 
 exports.deleteObject = async (key) => {
-    const command = new GetObjectCommand({
+    if (key.toString().endsWith('490.jpg')) { key = key.slice(2) }
+    const command = new DeleteObjectCommand({
         Bucket: process.env.S3_BUCKET_NAME,
         Key: key
     });
 
-    try {
-        await s3Client.send(command);
-        return true
-    } catch (err) {
-        return false
-    }
+    await s3Client.send(command)
 }
 
 exports.downloadFile = (url, filePath) => {

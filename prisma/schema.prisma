@@ -4,7 +4,7 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DB_STRING_FOR_PRISMA")
+  url      = env("DB_STRING")
 }
 
 model User {
@@ -17,7 +17,7 @@ model User {
   dob       DateTime
   role      Role       @default(POLICY_HOLDER)
   address   String
-  phone     Int
+  phone     String
   policies  Policy[]
   claims    Claim[]
   documents Document[]
@@ -41,9 +41,9 @@ model Claim {
   desc             String
   claimType        String
   dateOfIntimation DateTime
-  claimAmount      Int
+  claimAmount      String
   policy           Policy     @relation(fields: [policyId], references: [id], onDelete: Cascade)
-  policyId         Int        @unique
+  policyId         Int
   documents        Document[]
   report           Report?
   user             User       @relation(fields: [userId], references: [id], onDelete: Cascade)

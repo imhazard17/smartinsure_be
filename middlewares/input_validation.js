@@ -6,3 +6,5 @@ const userSchema = z.object({
     firstName: z.string().max(30),
     lastName: z.string().max(30),
 })
+
+

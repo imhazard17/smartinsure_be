@@ -9,7 +9,7 @@ const prisma = require("../utils/db");
 router.get('/:id', auth, errForward(async (req, res) => {
     const policy = await prisma.policy.findUnique({
         where: {
-            id: req.params.id
+            id: parseInt(req.params.id)
         },
         include: {
             user: {
@@ -19,8 +19,8 @@ router.get('/:id', auth, errForward(async (req, res) => {
                     id: true,
                 }
             },
-            claim: {
-                include: {
+            claims: {
+                select: {
                     id: true
                 }
             }
@@ -46,7 +46,7 @@ router.get('/:id', auth, errForward(async (req, res) => {
 router.get('/list/:userId', auth, errForward(async (req, res) => {
     const policies = await prisma.policy.findMany({
         where: {
-            userId: req.params.userId,
+            userId: parseInt(req.params.userId),
         },
         include: {
             user: {
@@ -56,15 +56,15 @@ router.get('/list/:userId', auth, errForward(async (req, res) => {
                     id: true,
                 }
             },
-            claim: {
-                include: {
+            claims: {
+                select: {
                     id: true
                 }
             }
         }
     })
 
-    if(policies.user.id !== req.locals.userId && req.locals.role !== "CLAIM_ASSESSOR") {
+    if(req.params.userId !== req.locals.userId && req.locals.role !== "CLAIM_ASSESSOR") {
         return res.status(400).json({
             err: 'Insufficient privilages to access'
         })
@@ -76,7 +76,9 @@ router.get('/list/:userId', auth, errForward(async (req, res) => {
         })
     }
 
-    return res.status(200).json(policies)
+    return res.status(200).json({
+        msg: policies
+    })
 }))
 
 // POST /policy/new
@@ -92,7 +94,7 @@ router.post('/new', auth, errForward(async (req, res) => {
             hospName: req.body.hospName,
             hospCity: req.body.hospCity,
             desc: req.body.desc,
-            userId: req.body.userId,
+            userId: parseInt(req.body.userId),
         },
         select: {
             id: true
@@ -120,7 +122,7 @@ router.delete('/delete/:id', auth, errForward(async (req, res) => {
 
     const deletedPolicy = await prisma.policy.delete({
         where: {
-            id: req.params.id
+            id: parseInt(req.params.id)
         },
         select: {
             id: true

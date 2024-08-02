@@ -6,13 +6,13 @@ const upload = require('../middlewares/multer')
 const { putObjectUrl, getObjectUrl, deleteObject } = require("../utils/s3");
 const { default: axios } = require("axios");
 const fs = require("fs");
-const { url } = require("inspector");
+const { z } = require("zod");
 
 // GET /document/:id
 router.get('/:id', auth, errForward(async (req, res) => {
     const document = await prisma.document.findUnique({
         where: {
-            id: req.params.id
+            id: parseInt(req.params.id)
         }
     })
 
@@ -23,6 +23,7 @@ router.get('/:id', auth, errForward(async (req, res) => {
     }
 
     if (document.userId !== req.locals.userId && req.locals.role !== "CLAIM_ASSESSOR") {
+        console.log(req.locals)
         return res.status(400).json({
             err: 'Insufficient privilages to access document',
         })
@@ -36,7 +37,7 @@ router.get('/:id', auth, errForward(async (req, res) => {
 router.get('/count/:claimId', auth, errForward(async (req, res) => {
     const claim = await prisma.claim.findUnique({
         where: {
-            id: req.params.claimId
+            id: parseInt(req.params.claimId)
         },
         select: {
             userId: true
@@ -51,7 +52,7 @@ router.get('/count/:claimId', auth, errForward(async (req, res) => {
 
     const docs = await prisma.document.findMany({
         where: {
-            claimId: req.params.claimId
+            claimId: parseInt(req.params.claimId)
         },
         select: {
             id: true
@@ -63,11 +64,11 @@ router.get('/count/:claimId', auth, errForward(async (req, res) => {
     })
 }))
 
-// GET /document/:claimId   -> returns all the documents associated with a claim
-router.get('/:claimId', auth, errForward(async (req, res) => {
+// GET /document/claim/:claimId   -> returns all the documents associated with a claim
+router.get('/claim/:claimId', auth, errForward(async (req, res) => {
     const claim = await prisma.claim.findUnique({
         where: {
-            id: req.params.claimId
+            id: parseInt(req.params.claimId)
         },
         select: {
             userId: true
@@ -82,10 +83,7 @@ router.get('/:claimId', auth, errForward(async (req, res) => {
 
     const docs = await prisma.document.findMany({
         where: {
-            claimId: req.params.claimId
-        },
-        select: {
-            originalName: true
+            claimId: parseInt(req.params.claimId)
         }
     })
 
@@ -105,18 +103,33 @@ router.get('/:claimId', auth, errForward(async (req, res) => {
 
 // POST /document/upload/:claimId
 router.post('/upload/:claimId', auth, upload.array('files', 15), errForward(async (req, res) => {
+    const claim = await prisma.claim.findUnique({
+        where: {
+            id: parseInt(req.params.claimId)
+        },
+        select: {
+            userId: true
+        }
+    })
+
+    if (claim.userId !== req.locals.userId) {
+        return res.status(400).json({
+            err: 'Cannot upload document on the claims you dont own'
+        })
+    }
+
     const documentIds = []
     const files = Array.from(req.files)
 
     if (!req.files) {
-        return req.status(500).json({
+        return res.status(500).json({
             err: 'File upload failed'
         })
     }
 
     const docs = await prisma.document.findMany({
         where: {
-            claimId: req.params.claimId
+            claimId: parseInt(req.params.claimId)
         },
         select: {
             id: true
@@ -127,7 +140,7 @@ router.post('/upload/:claimId', auth, upload.array('files', 15), errForward(asyn
         await Promise.all(files.map(file => new Promise((resolve, reject) => {
             fs.unlink(file.path, err => err ? reject() : resolve())
         })))
-        return req.status(400).json({
+        return res.status(400).json({
             err: 'Cannot have more than 15 documents per claim'
         })
     }
@@ -138,8 +151,8 @@ router.post('/upload/:claimId', auth, upload.array('files', 15), errForward(asyn
                 data: {
                     docType: file.mimetype === 'application/pdf' ? 'TEXT' : 'SCAN',
                     name: file.filename,
-                    claimId: req.params.claimId,
-                    userId: req.locals.userId,
+                    claimId: parseInt(req.params.claimId),
+                    userId: parseInt(req.locals.userId),
                     originalName: file.originalname
                 },
                 select: {
@@ -159,7 +172,7 @@ router.post('/upload/:claimId', auth, upload.array('files', 15), errForward(asyn
             if (s3Upload.status !== 200) {
                 prisma.document.delete({
                     where: {
-                        id: createdDoc.id
+                        id: parseInt(createdDoc.id)
                     }
                 })
             }
@@ -181,16 +194,33 @@ router.post('/upload/:claimId', auth, upload.array('files', 15), errForward(asyn
 }))
 
 // POST /document/upload/one/:claimId
-router.post('/upload/:claimId', auth, upload.single('file'), errForward(async (req, res) => {
-    if (!req.file) {
-        return req.status(500).json({
+router.post('/upload/one/:claimId', auth, upload.single('file'), errForward(async (req, res) => {
+    const file = req.file
+
+    const claim = await prisma.claim.findUnique({
+        where: {
+            id: parseInt(req.params.claimId)
+        },
+        select: {
+            userId: true
+        }
+    })
+
+    if (claim.userId !== req.locals.userId) {
+        return res.status(400).json({
+            err: 'Cannot upload document on the claims you dont own'
+        })
+    }
+
+    if (!file) {
+        return res.status(500).json({
             err: 'File upload failed'
         })
     }
 
     const docs = await prisma.document.findMany({
         where: {
-            claimId: req.params.claimId
+            claimId: parseInt(req.params.claimId)
         },
         select: {
             id: true
@@ -198,8 +228,8 @@ router.post('/upload/:claimId', auth, upload.single('file'), errForward(async (r
     })
 
     if (docs.length === 15) {
-        fs.unlinkSync(req.file.path)
-        return req.status(400).json({
+        fs.unlinkSync(file.path)
+        return res.status(400).json({
             err: 'Cannot have more than 15 documents per claim'
         })
     }
@@ -209,8 +239,8 @@ router.post('/upload/:claimId', auth, upload.single('file'), errForward(async (r
             data: {
                 docType: file.mimetype === 'application/pdf' ? 'TEXT' : 'SCAN',
                 name: file.filename,
-                claimId: req.params.claimId,
-                userId: req.locals.userId,
+                claimId: parseInt(req.params.claimId),
+                userId: parseInt(req.locals.userId),
                 originalName: file.originalname
             },
             select: {
@@ -229,16 +259,17 @@ router.post('/upload/:claimId', auth, upload.single('file'), errForward(async (r
         if (s3Upload.status !== 200) {
             prisma.document.delete({
                 where: {
-                    id: createdDoc.id
+                    id: parseInt(createdDoc.id)
                 }
             })
         }
         fs.unlinkSync(file.path)
         return res.status(200).json({
-            msg: 'Documents created successfully',
-            docIds: documentIds
+            msg: 'Document created successfully',
+            docIds: createdDoc.id
         })
-    } catch {
+    } catch (err) {
+        console.log(err)
         return res.status(500).json({
             err: 'document creation failed'
         })
@@ -247,49 +278,81 @@ router.post('/upload/:claimId', auth, upload.single('file'), errForward(async (r
 
 // DELETE /document/delete/:id   (only for policy_holder)
 router.delete('/delete/:id', auth, errForward(async (req, res) => {
-    const deletedDoc = await prisma.document.deleteMany({
+    const document = await prisma.document.findUnique({
         where: {
-            claimId: req.params.claimId,
-            userId: req.locals.userId
+            id: parseInt(req.params.id)
         },
         select: {
             id: true,
-            name: true,
+            userId: true,
+            name: true
         }
     })
 
-    if (!deletedDoc) {
+    if(!document) {
         return res.status(400).json({
-            err: 'No such documents found'
+            err: 'Document does not exist'
         })
     }
 
-    await deleteObject(`documents/${deletedDoc.name}`)
+    if (document.userId !== req.locals.userId) {
+        return res.status(400).json({
+            err: 'Cannot delete document which you dont own'
+        })
+    }
+
+    await prisma.document.delete({
+        where: {
+            id: parseInt(req.params.id),
+        }
+    })
+
+    await deleteObject(`documents/${document.name}`)
 
     return res.status(200).json({
-        msg: `Successfully deleted document with id: ${deletedDoc.id}`
+        msg: `Successfully deleted document with id: ${document.id}`
     })
 }))
 
-// DELETE /document/delete/:claimId   -> delete all docs associated wirh a claim  (only for policy_holder)
-router.delete('/delete/:claimId', auth, errForward(async (req, res) => {
-    const deletedDocs = await prisma.document.deleteMany({
+// DELETE /document/delete/claim/:claimId   -> delete all docs associated wirh a claim  (only for policy_holder)
+router.delete('/delete/claim/:claimId', auth, errForward(async (req, res) => {
+    const claim = await prisma.claim.findUnique({
         where: {
-            claimId: req.params.claimId,
-            userId: req.locals.userId
+            id: parseInt(req.params.claimId)
+        },
+        select: {
+            userId: true
+        }
+    })
+
+    if(!claim) {
+        return res.status(400).json({
+            err: 'Such claim does not exist'
+        })
+    }
+
+    if (claim.userId !== req.locals.userId) {
+        return res.status(400).json({
+            err: 'Cannot delete document which you dont own'
+        })
+    }
+
+    const docs = await prisma.document.findMany({
+        where: {
+            claimId: parseInt(req.params.claimId),
         },
         select: {
             name: true
         }
     })
 
-    if (!deletedDocs) {
-        return res.status(400).json({
-            err: 'No such documents found'
-        })
-    }
+    await prisma.document.deleteMany({
+        where: {
+            claimId: parseInt(req.params.claimId),
+        }
+    })
 
-    await Promise.all(deletedDocs.map(deletedDoc => deleteObject(`documents/${deletedDoc.name}`)))
+    await Promise.all(docs.map(doc => deleteObject(`documents/${doc.name}`)))
 
     return res.status(200).json({
         msg: `Successfully deleted documents which belonged to claim with id: ${req.params.claimId}`

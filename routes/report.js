@@ -1,105 +1,24 @@
 const router = require("express").Router();
 const prisma = require("../utils/db");
 const errForward = require('../utils/errorForward')
-const generateReport = require('../utils/gemini')
+const { generateReport, generateDocwise, generateSummary, generateTreatments } = require('../utils/gemini')
 const path = require('path')
 const fs = require('fs')
 const { getObjectUrl, downloadFile } = require('../utils/s3')
 const { v6: uuid } = require('uuid')
+const auth = require('../middlewares/authentication');
+const { z } = require("zod");
+const convertibleToNum = require('../utils/zod_helper');
 
-// GET /report/generate/:claimId   ==> use llms to generate report of claim and save the report to db
-router.get('/generate/:claimId', errForward(async (req, res) => {
-    if (req.locals.role !== "CLAIM_ASSESSOR") {
-        return res.status(400).json({
-            msg: "Insufficient privilages to make this action"
-        })
-    }
-
+// GET /report/:id
+router.get('/:id', auth, errForward(async (req, res) => {
     const report = await prisma.report.findUnique({
         where: {
-            claimId: req.params.claimId
-        }
-    })
-
-    if (report) {
-        await prisma.report.delete({
-            where: {
-                claimId: req.params.claimId
-            }
-        })
-    }
-
-    const claim = await prisma.claim.findUnique({
-        where: {
-            id: req.params.claimId
-        },
-        select: {
-            userId: true
-        }
-    })
-
-    const docs = prisma.document.findMany({
-        where: {
-            claimId: req.params.claimId
-        },
-        select: {
-            name: true
-        }
-    })
-
-    const folderPath = path.join(__dirname, '..', uuid())
-    fs.mkdirSync(folderPath);
-    await Promise.all(docs.map(async (doc) => {
-        const url = await getObjectUrl(`documents/${doc.name}`)
-        return downloadFile(url, path.join(folderPath, doc.name))
-    }))
-
-    const { docWiseReport, treatmentDetails, summary } = await generateReport(folderPath)
-    fs.rmSync(folderPath, { recursive: true })
-
-    let estimatedExpenses = 0
-    JSON.parse(treatmentDetails).TreatmentDetails.forEach(ob => { estimatedExpenses += ob.Cost })
-
-    const [newReport, _, __] = await prisma.$transaction([
-        prisma.report.create({
-            data: {
-                combinedSummary: summary,
-                estimatedExpenses,
-                userId: claim.userId,
-                claimId: req.params.claimId,
-            },
-            select: {
-                id: true
-            }
-        }),
-        prisma.alternateTreatments.create({
-            data: {
-                text: treatmentDetails,
-                reportId: newReport.id
-            }
-        }),
-        prisma.docWiseReport.create({
-            data: {
-                text: docWiseReport,
-                reportId: newReport.id
-            }
-        })
-    ])
-
-    return res.status(200).json({
-        msg: `Report created with id: ${newReport.id}`
-    })
-}))
-
-// GET /report/:claimId
-router.get('/:claimId', errForward(async (req, res) => {
-    const report = await prisma.report.findUnique({
-        where: {
-            claimId: req.params.claimId
+            id: parseInt(req.params.id)
         },
         include: {
-            AlternateTreatments: true,
-            DocWiseReport: true
+            alternateTreatments: true,
+            docWiseReport: true
         }
     })
 
@@ -118,8 +37,295 @@ router.get('/:claimId', errForward(async (req, res) => {
     return res.status(200).json(report)
 }))
 
-// PUT /report/update/:claimId  ==> only for claim assessors
-router.post('/update/:claimId', errForward(async (req, res) => {
+// GET /report/claim/:claimId
+router.get('/claim/:claimId', auth, errForward(async (req, res) => {
+    const report = await prisma.report.findUnique({
+        where: {
+            claimId: parseInt(req.params.claimId)
+        },
+        include: {
+            alternateTreatments: true,
+            docWiseReport: true
+        }
+    })
+
+    if (!report) {
+        return res.status(400).json({
+            err: 'No such report found'
+        })
+    }
+
+    if (report.userId !== req.locals.userId && req.locals.role !== "CLAIM_ASSESSOR") {
+        return res.status(400).json({
+            err: 'Insufficient privilages to access report'
+        })
+    }
+
+    return res.status(200).json(report)
+}))
+
+// GET /report/generate/:claimId   ==> use llms to generate report of claim and save the report to db
+router.get('/generate/:claimId', auth, errForward(async (req, res) => {
+    if (req.locals.role !== "CLAIM_ASSESSOR") {
+        return res.status(400).json({
+            msg: "Insufficient privilages to make this action"
+        })
+    }
+
+    const report = await prisma.report.findUnique({
+        where: {
+            claimId: parseInt(req.params.claimId)
+        }
+    })
+
+    if (report) {
+        await prisma.report.delete({
+            where: {
+                claimId: parseInt(req.params.claimId)
+            }
+        })
+    }
+
+    const claim = await prisma.claim.findUnique({
+        where: {
+            id: parseInt(req.params.claimId)
+        },
+        select: {
+            userId: true
+        }
+    })
+
+    const docs = await prisma.document.findMany({
+        where: {
+            claimId: parseInt(req.params.claimId)
+        },
+        select: {
+            name: true
+        }
+    })
+
+    if (docs.length === 0) {
+        return res.status(400).json({
+            err: 'No documents uploaded for the claim yet'
+        })
+    }
+
+    const folderPath = path.join(__dirname, '..', uuid())
+    fs.mkdirSync(folderPath);
+    await Promise.all(docs.map(async (doc) => {
+        const url = await getObjectUrl(`documents/${doc.name}`)
+        return downloadFile(url, path.join(folderPath, doc.name))
+    }))
+
+    const { docWiseReport, treatmentDetails, summary } = await generateReport(folderPath)
+    fs.rmSync(folderPath, { recursive: true })
+
+    let estimatedExpenses = 0
+    JSON.parse(treatmentDetails).TreatmentDetails.forEach(ob => { estimatedExpenses += ob.Cost })
+
+    const newReport = await prisma.report.create({
+        data: {
+            combinedSummary: summary,
+            estimatedExpenses,
+            userId: parseInt(claim.userId),
+            claimId: parseInt(req.params.claimId),
+        },
+        select: {
+            id: true
+        }
+    })
+
+    const [_, __] = await prisma.$transaction([
+        prisma.alternateTreatments.create({
+            data: {
+                text: treatmentDetails,
+                reportId: parseInt(newReport.id)
+            }
+        }),
+        prisma.docWiseReport.create({
+            data: {
+                text: docWiseReport,
+                reportId: parseInt(newReport.id)
+            }
+        })
+    ])
+
+    return res.status(200).json({
+        msg: `Report created with id: ${newReport.id}`,
+        summary: summary,
+        alternateTreatments: treatmentDetails,
+        docWiseReport: docWiseReport
+    })
+}))
+
+// GET /report/summary/generate/:id
+router.get('/summary/generate/:id', auth, errForward(async (req, res) => {
+    if (req.locals.role !== "CLAIM_ASSESSOR") {
+        return res.status(400).json({
+            msg: "Insufficient privilages to make this action"
+        })
+    }
+
+    const report = await prisma.report.findUnique({
+        where: {
+            id: parseInt(req.params.id)
+        },
+        select: {
+            claimId: true
+        }
+    })
+
+    if (!report) {
+        return res.status(400).json({
+            err: 'No such report found'
+        })
+    }
+
+    const docs = await prisma.document.findMany({
+        where: {
+            claimId: parseInt(report.claimId)
+        },
+        select: {
+            name: true
+        }
+    })
+
+    if (docs.length === 0) {
+        return res.status(400).json({
+            err: 'No documents uploaded for the claim yet'
+        })
+    }
+
+    const folderPath = path.join(__dirname, '..', uuid())
+    fs.mkdirSync(folderPath);
+    await Promise.all(docs.map(async (doc) => {
+        const url = await getObjectUrl(`documents/${doc.name}`)
+        return downloadFile(url, path.join(folderPath, doc.name))
+    }))
+
+    const summary = await generateSummary(folderPath)
+    fs.rmSync(folderPath, { recursive: true })
+
+    return res.status(200).json(summary)
+}))
+
+// GET /report/treatments/generate/:id
+router.get('/treatments/generate/:id', auth, errForward(async (req, res) => {
+    if (req.locals.role !== "CLAIM_ASSESSOR") {
+        return res.status(400).json({
+            msg: "Insufficient privilages to make this action"
+        })
+    }
+
+    const report = await prisma.report.findUnique({
+        where: {
+            id: parseInt(req.params.id)
+        },
+        select: {
+            claimId: true
+        }
+    })
+
+    if (!report) {
+        return res.status(400).json({
+            err: 'No such report found'
+        })
+    }
+
+    const docs = await prisma.document.findMany({
+        where: {
+            claimId: parseInt(report.claimId)
+        },
+        select: {
+            name: true
+        }
+    })
+
+    if (docs.length === 0) {
+        return res.status(400).json({
+            err: 'No documents uploaded for the claim yet'
+        })
+    }
+
+    const folderPath = path.join(__dirname, '..', uuid())
+    fs.mkdirSync(folderPath);
+    await Promise.all(docs.map(async (doc) => {
+        const url = await getObjectUrl(`documents/${doc.name}`)
+        return downloadFile(url, path.join(folderPath, doc.name))
+    }))
+
+    const treatments = await generateTreatments(folderPath)
+    fs.rmSync(folderPath, { recursive: true })
+
+    return res.status(200).json(treatments)
+}))
+
+// GET /report/docwise/generate/:id
+router.get('/docwise/generate/:id', auth, errForward(async (req, res) => {
+    if (req.locals.role !== "CLAIM_ASSESSOR") {
+        return res.status(400).json({
+            msg: "Insufficient privilages to make this action"
+        })
+    }
+
+    const report = await prisma.report.findUnique({
+        where: {
+            id: parseInt(req.params.id)
+        },
+        select: {
+            claimId: true
+        }
+    })
+
+    if (!report) {
+        return res.status(400).json({
+            err: 'No such report found'
+        })
+    }
+
+    const docs = await prisma.document.findMany({
+        where: {
+            claimId: parseInt(report.claimId)
+        },
+        select: {
+            name: true
+        }
+    })
+
+    if (docs.length === 0) {
+        return res.status(400).json({
+            err: 'No documents uploaded for the claim yet'
+        })
+    }
+
+    const folderPath = path.join(__dirname, '..', uuid())
+    fs.mkdirSync(folderPath);
+    await Promise.all(docs.map(async (doc) => {
+        const url = await getObjectUrl(`documents/${doc.name}`)
+        return downloadFile(url, path.join(folderPath, doc.name))
+    }))
+
+    const docwise = await generateDocwise(folderPath)
+    fs.rmSync(folderPath, { recursive: true })
+
+    return res.status(200).json(docwise)
+}))
+
+// PUT /report/update/:id  ==> only for claim assessors
+router.put('/update/:id', auth, errForward(async (req, res) => {
+    const reportSchema = z.object({
+        combinedSummary: z.string(),
+        estimatedExpenses: z.string().refine(convertibleToNum),
+        notes: z.string().optional(),
+        approved: z.literal("YES").or(z.literal("NO")).optional()
+    })
+
+    if (!reportSchema.safeParse(req.body)) {
+        return res.status(400).json({
+            err: 'Invalid inputs given'
+        })
+    }
+
     if (req.locals.role !== "CLAIM_ASSESSOR") {
         return res.status(400).json({
             msg: "Insufficient privilages to make this action"
@@ -128,7 +334,7 @@ router.post('/update/:claimId', errForward(async (req, res) => {
 
     const updatedReport = await prisma.report.update({
         where: {
-            claimId: req.locals.claimId
+            id: parseInt(req.params.id)
         },
         data: {
             combinedSummary: req.body.combinedSummary,
@@ -153,7 +359,21 @@ router.post('/update/:claimId', errForward(async (req, res) => {
 }))
 
 // PUT /report/treaments/update/:reportId
-router.post('/treaments/update/:reportId', errForward(async (req, res) => {
+router.put('/treaments/update/:reportId', auth, errForward(async (req, res) => {
+    const treamentSchema = z.object({
+        text: z.array(z.object({
+            TreatmentDescription: z.string(),
+            TypeOfTreatment: z.string(),
+            Cost: z.number()
+        }))
+    })
+
+    if (!treamentSchema.safeParse(req.body)) {
+        return res.status(400).json({
+            err: 'Invalid inputs given'
+        })
+    }
+
     if (req.locals.role !== "CLAIM_ASSESSOR") {
         return res.status(400).json({
             msg: "Insufficient privilages to make this action"
@@ -162,7 +382,7 @@ router.post('/treaments/update/:reportId', errForward(async (req, res) => {
 
     const updatedTreament = await prisma.alternateTreatments.update({
         where: {
-            reportId: req.locals.reportId
+            reportId: parseInt(req.params.reportId)
         },
         data: {
             text: req.body.text,
@@ -184,16 +404,26 @@ router.post('/treaments/update/:reportId', errForward(async (req, res) => {
 }))
 
 // PUT /report/docWise/update/:reportId
-router.post('/docWise/update/:reportId', errForward(async (req, res) => {
+router.put('/docWise/update/:reportId', auth, errForward(async (req, res) => {
+    const docWiseSchema = z.object({
+        text: z.array()
+    })
+
+    if (!docWiseSchema.safeParse(req.body)) {
+        return res.status(400).json({
+            err: 'Invalid inputs given'
+        })
+    }
+
     if (req.locals.role !== "CLAIM_ASSESSOR") {
         return res.status(400).json({
             msg: "Insufficient privilages to make this action"
         })
     }
 
-    const updatedDocwise = await prisma.report.update({
+    const updatedDocwise = await prisma.docWiseReport.update({
         where: {
-            reportId: req.locals.reportId
+            reportId: parseInt(req.params.reportId),
         },
         data: {
             text: req.body.text,
@@ -215,7 +445,7 @@ router.post('/docWise/update/:reportId', errForward(async (req, res) => {
 }))
 
 // DELETE /report/delete/:claimId
-router.delete('/delete/:claimId', errForward(async (req, res) => {
+router.delete('/delete/:claimId', auth, errForward(async (req, res) => {
     if (req.locals.role !== "CLAIM_ASSESSOR") {
         return res.status(400).json({
             msg: "Insufficient privilages to make this action"
@@ -224,7 +454,7 @@ router.delete('/delete/:claimId', errForward(async (req, res) => {
 
     const deletedReport = await prisma.report.delete({
         where: {
-            claimId: req.params.claimId
+            claimId: parseInt(req.params.claimId)
         },
         select: {
             id: true

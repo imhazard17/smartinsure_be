@@ -10,7 +10,6 @@ const error = require('./middlewares/error')
 const app = express()
 
 app.use(express.json())
-app.use(error)
 app.use('/claim', claimRouter)
 app.use('/report', reportRouter)
 app.use('/policy', policyRouter)
@@ -20,9 +19,11 @@ app.use('/auth', authRouter)
 
 app.all('*', (req, res, next) => {
     return res.status(404).json({
-        err: `Endpoint ${req.url} does not exist`
+        err: `Endpoint ${req.method} ${req.url} does not exist`
     })
 })
+
+app.use(error)
 
 app.listen(process.env.SERVER_PORT, () => {
     console.log(`Listening on port: ${process.env.SERVER_PORT}`)
