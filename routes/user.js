@@ -2,7 +2,8 @@ const router = require("express").Router();
 const errForward = require('../utils/errorForward')
 const prisma = require('../utils/db')
 const auth = require('../middlewares/authentication')
-const bcrypt = require('bcrypt')
+const bcrypt = require('bcrypt');
+const { z } = require("zod");
 
 // GET /user/details/:userId  ==> only for Claim assessor
 router.get('/details/:userId', auth, errForward(async (req, res) => {
@@ -60,6 +61,12 @@ router.get('/my-details', auth, errForward(async (req, res) => {
 
 // DELETE /user/delete-account
 router.delete('/delete-account', auth, errForward(async (req, res) => {
+    if (!z.object({ password: z.string().min() }).safeParse(req.body)) {
+        return res.status(400).json({
+            err: 'Invalid inputs sent'
+        })
+    }
+
     const user = await prisma.user.findUnique({
         where: {
             id: +(req.locals.userId),
