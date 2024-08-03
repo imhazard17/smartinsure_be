@@ -18,9 +18,9 @@ const storage = multer.diskStorage({
     },
     filename: (req, file, cb) => {
         if (file.mimetype === 'application/pdf') {
-            cb(null, 'text_' + uuid() + '.pdf')
+            cb(null, 'text_' + req.params.claimId + '_' + uuid() + '.pdf')
         } else if (file.mimetype.startsWith('image/')) {
-            cb(null, 'scan_' + uuid() + '.jpg')
+            cb(null, 'scan_' + req.params.claimId + '_' + uuid() + '.jpg')
         }
     }
 })
