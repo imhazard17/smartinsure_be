@@ -151,10 +151,12 @@ router.get('/generate/:claimId', auth, errForward(async (req, res) => {
     ])
 
     return res.status(200).json({
-        msg: `Report created with id: ${newReport.id}`,
-        summary: summary,
-        alternateTreatments: treatmentDetails,
-        docWiseReport: docWiseReport
+        msg: {
+            createdReportId: newReport.id,
+            summary: summary,
+            alternateTreatments: treatmentDetails,
+            docWiseReport: docWiseReport
+        }
     })
 }))
 

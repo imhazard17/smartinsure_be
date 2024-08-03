@@ -123,8 +123,7 @@ router.put('/promote-to-claim-assessor/:userId', auth, errForward(async (req, re
     })
 
     return res.status(200).json({
-        msg: 'User promoted to claim assessor successfully',
-        ...resp
+        msg: `User with id: ${resp.id} to role: ${resp.role}`,
     })
 }))
 

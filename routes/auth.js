@@ -7,6 +7,7 @@ const jwt = require('jsonwebtoken')
 const z = require('zod')
 const validator = require('validator')
 const convertibleToNum = require('../utils/zod_helper')
+require('dotenv').config()
 
 function addMinutesToDate(date, minutes) {
     return new Date(date.getTime() + minutes * 60000);
@@ -22,7 +23,7 @@ function getRandomInt(min, max) {
 router.get('/send-otp/:email', errForward(async (req, res) => {
     // check if email already used
     // if not delete all otps on that email previously then send otp to the mail
-    if(!z.string().email().safeParse(req.params.email).success) {
+    if (!z.string().email().safeParse(req.params.email).success) {
         return res.status(400).json({
             err: 'Invalid email'
         })
@@ -63,7 +64,7 @@ router.get('/send-otp/:email', errForward(async (req, res) => {
         from: process.env.NODEMAILER_EMAIL,
         to: req.params.email,
         subject: 'OTP for SmartInsure signup',
-        text: `The otp for SmartInsure is: ${code}\n\nONLY VALID FOR 5 MINUTES\n\nDO NOT SHARE WITH ANYBODY`
+        text: `The otp for SmartInsure is: ${code}\n\nONLY VALID FOR ${process.env.MINUTES_TO_EXPIRE_OTP} MINUTES\n\nDO NOT SHARE WITH ANYBODY`
     };
 
     transporter.sendMail(mailOptions, async (error, _) => {
@@ -78,7 +79,7 @@ router.get('/send-otp/:email', errForward(async (req, res) => {
             data: {
                 code: code,
                 email: req.params.email,
-                expireAt: addMinutesToDate(new Date(), 500)  // CHANGE
+                expireAt: addMinutesToDate(new Date(), process.env.MINUTES_TO_EXPIRE_OTP)
             }
         })
 
