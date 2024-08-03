@@ -14,7 +14,7 @@ router.get('/details/:userId', auth, errForward(async (req, res) => {
 
     const user = await prisma.user.findUnique({
         where: {
-            id: parseInt(req.params.userId),
+            id: +(req.params.userId),
         },
         include: {
             policies: true,
@@ -31,14 +31,14 @@ router.get('/details/:userId', auth, errForward(async (req, res) => {
 
     delete user['password']
 
-    return res.status(200).json(user)
+    return res.status(200).json({ msg: user })
 }))
 
 // GET /user/my-details
 router.get('/my-details', auth, errForward(async (req, res) => {
     const user = await prisma.user.findUnique({
         where: {
-            id: parseInt(req.locals.userId),
+            id: +(req.locals.userId),
         },
         include: {
             policies: true,
@@ -55,14 +55,14 @@ router.get('/my-details', auth, errForward(async (req, res) => {
 
     delete user['password']
 
-    return res.status(200).json(user)
+    return res.status(200).json({ msg: user })
 }))
 
 // DELETE /user/delete-account
 router.delete('/delete-account', auth, errForward(async (req, res) => {
     const user = await prisma.user.findUnique({
         where: {
-            id: parseInt(req.locals.userId),
+            id: +(req.locals.userId),
         },
         select: {
             password: true,
@@ -83,7 +83,7 @@ router.delete('/delete-account', auth, errForward(async (req, res) => {
 
     const deletedUser = await prisma.user.delete({
         where: {
-            id: parseInt(req.locals.userId),
+            id: +(req.locals.userId),
         },
         select: {
             id: true,
@@ -114,7 +114,7 @@ router.put('/promote-to-claim-assessor/:userId', auth, errForward(async (req, re
             role: "CLAIM_ASSESSOR"
         },
         where: {
-            id: parseInt(req.params.userId),
+            id: +(req.params.userId),
         },
         select: {
             id: true,

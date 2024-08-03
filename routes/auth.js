@@ -22,7 +22,7 @@ function getRandomInt(min, max) {
 router.get('/send-otp/:email', errForward(async (req, res) => {
     // check if email already used
     // if not delete all otps on that email previously then send otp to the mail
-    if(!z.string().email().safeParse(req.params.email)) {
+    if(!z.string().email().safeParse(req.params.email).success) {
         return res.status(400).json({
             err: 'Invalid email'
         })
@@ -82,9 +82,9 @@ router.get('/send-otp/:email', errForward(async (req, res) => {
             }
         })
 
-        return res.status(500).json({
+        return res.status(200).json({
             email: req.params.email,
-            msg: 'sucessfully sent otp'
+            msg: 'Sucessfully sent otp'
         })
     });
 }))
@@ -107,7 +107,7 @@ router.post('/signup', errForward(async (req, res) => {
         otp: z.string().length(6).refine(convertibleToNum)
     })
 
-    if (!authSchema.safeParse(req.body)) {
+    if (!authSchema.safeParse(req.body).success) {
         return res.status(400).json({
             err: 'Invalid inputs entered'
         })
@@ -198,7 +198,7 @@ router.post('/login', errForward(async (req, res) => {
         password: z.string().min(8)
     })
 
-    if (!loginSchema.safeParse(req.body)) {
+    if (!loginSchema.safeParse(req.body).success) {
         return res.status(400).json({
             err: 'Invalid inputs entered'
         })

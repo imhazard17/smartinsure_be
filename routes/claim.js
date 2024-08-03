@@ -7,7 +7,15 @@ const convertibleToNum = require('../utils/zod_helper')
 
 const claimSchema = z.object({
     claimAmount: z.string().refine(convertibleToNum),
-    claimType: z.literal("CASHLESS") .or(z.literal("REIMBURSEMENT")),
+    claimType: z.string(),
+    dateOfIntimation: z.string().date(),
+    desc: z.string().optional(),
+    policyId: z.string().refine(convertibleToNum),
+})
+
+const updateClaimSchema = z.object({
+    claimAmount: z.string().refine(convertibleToNum),
+    claimType: z.string(),
     dateOfIntimation: z.string().date(),
     desc: z.string().optional(),
 })
@@ -16,7 +24,7 @@ const claimSchema = z.object({
 router.get('/my-claims', auth, errForward(async (req, res) => {
     const claim = await prisma.claim.findMany({
         where: {
-            userId: parseInt(req.locals.userId)
+            userId: +req.locals.userId
         },
         include: {
             report: true,
@@ -30,14 +38,20 @@ router.get('/my-claims', auth, errForward(async (req, res) => {
         })
     }
 
-    return res.status(200).json(claim)
+    return res.status(200).json({ msg: claim })
 }))
 
 // GET /claim/user/:userId
 router.get('/user/:userId', auth, errForward(async (req, res) => {
+    if (req.locals.role !== "CLAIM_ASSESSOR") {
+        return res.status(400).json({
+            err: 'Insuffient privilages to access claims'
+        })
+    }
+
     const claims = await prisma.claim.findMany({
         where: {
-            userId: parseInt(req.params.userId)
+            userId: +req.params.userId
         },
         include: {
             report: true,
@@ -51,20 +65,14 @@ router.get('/user/:userId', auth, errForward(async (req, res) => {
         })
     }
 
-    if (req.locals.role !== "CLAIM_ASSESSOR") {
-        return res.status(400).json({
-            err: 'Insuffient privilages to access claims'
-        })
-    }
-
-    return res.status(200).json(claims)
+    return res.status(200).json({ msg: claims })
 }))
 
 // GET /claim/:id
 router.get('/:id', auth, errForward(async (req, res) => {
     const claim = await prisma.claim.findUnique({
         where: {
-            id: parseInt(req.params.id)
+            id: +req.params.id
         },
         include: {
             report: true,
@@ -84,12 +92,12 @@ router.get('/:id', auth, errForward(async (req, res) => {
         })
     }
 
-    return res.status(200).json(claim)
+    return res.status(200).json({ msg: claim })
 }))
 
 // POST /claim/new
 router.post('/new', auth, errForward(async (req, res) => {
-    if(!claimSchema.safeParse(req.body)) {
+    if (!claimSchema.safeParse(req.body).success) {
         return res.status(400).json({
             err: 'Invalid inputs given'
         })
@@ -101,14 +109,29 @@ router.post('/new', auth, errForward(async (req, res) => {
         })
     }
 
+    const policy = await prisma.policy.findUnique({
+        where: {
+            id: +req.body.policyId,
+        },
+        select: {
+            userId: true
+        }
+    })
+
+    if (policy.userId !== req.locals.userId) {
+        return res.status(400).json({
+            err: "Cannot make claim on other users policies"
+        })
+    }
+
     const claim = await prisma.claim.create({
         data: {
             claimAmount: req.body.claimAmount,
             claimType: req.body.claimType,
             dateOfIntimation: new Date(req.body.dateOfIntimation).toISOString(),
             desc: req.body.desc,
-            policyId: parseInt(req.body.policyId),
-            userId: parseInt(req.locals.userId)
+            policyId: +req.body.policyId,
+            userId: +req.locals.userId
         },
         select: {
             id: true
@@ -121,27 +144,37 @@ router.post('/new', auth, errForward(async (req, res) => {
         })
     }
 
-    return res.status(200).json(claim)
+    return res.status(200).json({
+        msg: `Successfully created claim with id: ${claim.id}`
+    })
 }))
 
 // PUT /claim/update/:id
 router.put('/update/:id', auth, errForward(async (req, res) => {
-    if(!claimSchema.safeParse(req.body)) {
+    if (!updateClaimSchema.safeParse(req.body).success) {
         return res.status(400).json({
             err: 'Invalid inputs given'
         })
     }
 
-    if (req.locals.role !== "POLICY_HOLDER") {
+    const claim = await prisma.claim.findUnique({
+        where: {
+            id: +req.params.id
+        },
+        select: {
+            userId: true
+        }
+    })
+
+    if (!claim || req.locals.userId !== claim.userId) {
         return res.status(400).json({
-            err: 'Only policy holders can make claims'
+            err: 'Could not update claim because it does not exist in your list of claims'
         })
     }
 
-    const claim = await prisma.claim.update({
+    const updatedClaim = await prisma.claim.update({
         where: {
-            id: parseInt(req.params.id),
-            userId: parseInt(req.locals.userId)
+            id: +req.params.id,
         },
         data: {
             claimAmount: req.body.claimAmount,
@@ -154,43 +187,51 @@ router.put('/update/:id', auth, errForward(async (req, res) => {
         }
     })
 
-    if (!claim) {
+    if (!updatedClaim) {
         return res.status(500).json({
             err: 'Failed to update claim'
         })
     }
 
     return res.status(200).json({
-        msg: `Claim with id: ${claim.id} updated successfully`
+        msg: `Claim with id: ${updatedClaim.id} updated successfully`
     })
 }))
 
 // DELETE /claim/delete/:id
 router.delete('/delete/:id', auth, errForward(async (req, res) => {
-    if (req.locals.role !== "POLICY_HOLDER") {
+    const claim = await prisma.claim.findUnique({
+        where: {
+            id: +req.params.id
+        },
+        select: {
+            userId: true
+        }
+    })
+
+    if (!claim || req.locals.userId !== claim.userId) {
         return res.status(400).json({
-            err: 'Only policy holders can delete claims'
+            err: 'Could not delete claim because it does not exist in your list of claims'
         })
     }
 
-    const claim = await prisma.claim.delete({
+    const deletedClaim = await prisma.claim.delete({
         where: {
-            id: parseInt(req.params.id),
-            userId: parseInt(req.locals.userId),
+            id: +req.params.id,
         },
         select: {
             id: true
         }
     })
 
-    if (!claim) {
+    if (!deletedClaim) {
         return res.status(500).json({
             err: 'Failed to delete claim'
         })
     }
 
     return res.status(200).json({
-        msg: `Claim with id: ${claim.id} deleted successfully`
+        msg: `Claim with id: ${deletedClaim.id} deleted successfully`
     })
 }))
 

@@ -9,7 +9,7 @@ const prisma = require("../utils/db");
 router.get('/:id', auth, errForward(async (req, res) => {
     const policy = await prisma.policy.findUnique({
         where: {
-            id: parseInt(req.params.id)
+            id: +(req.params.id)
         },
         include: {
             user: {
@@ -27,26 +27,26 @@ router.get('/:id', auth, errForward(async (req, res) => {
         }
     })
 
-    if(policy.user.id !== req.locals.userId && req.locals.role !== "CLAIM_ASSESSOR") {
-        return res.status(400).json({
-            err: 'Insufficient privilages to access'
-        })
-    }
-
-    if(!policy) {
+    if (!policy) {
         return res.status(404).json({
             err: 'Could not find the policy'
         })
     }
 
-    return res.status(200).json(policy)
+    if (policy.user.id !== req.locals.userId && req.locals.role !== "CLAIM_ASSESSOR") {
+        return res.status(400).json({
+            err: 'Insufficient privilages to access'
+        })
+    }
+
+    return res.status(200).json({ msg: policy })
 }))
 
 // GET /policy/list/:userId
 router.get('/list/:userId', auth, errForward(async (req, res) => {
     const policies = await prisma.policy.findMany({
         where: {
-            userId: parseInt(req.params.userId),
+            userId: +(req.params.userId),
         },
         include: {
             user: {
@@ -64,13 +64,13 @@ router.get('/list/:userId', auth, errForward(async (req, res) => {
         }
     })
 
-    if(req.params.userId !== req.locals.userId && req.locals.role !== "CLAIM_ASSESSOR") {
+    if (req.params.userId !== req.locals.userId && req.locals.role !== "CLAIM_ASSESSOR") {
         return res.status(400).json({
             err: 'Insufficient privilages to access'
         })
     }
 
-    if(!policies) {
+    if (!policies) {
         return res.status(404).json({
             err: 'Could not find the policy'
         })
@@ -83,7 +83,7 @@ router.get('/list/:userId', auth, errForward(async (req, res) => {
 
 // POST /policy/new
 router.post('/new', auth, errForward(async (req, res) => {
-    if(req.locals.role !== "CLAIM_ASSESSOR") {
+    if (req.locals.role !== "CLAIM_ASSESSOR") {
         return res.status(400).json({
             err: 'Insuffient privilages to make this action'
         })
@@ -94,14 +94,14 @@ router.post('/new', auth, errForward(async (req, res) => {
             hospName: req.body.hospName,
             hospCity: req.body.hospCity,
             desc: req.body.desc,
-            userId: parseInt(req.body.userId),
+            userId: +(req.body.userId),
         },
         select: {
             id: true
         }
     })
 
-    if(!newPolicy) {
+    if (!newPolicy) {
         return res.status(500).json({
             err: 'failed to create policy'
         })
@@ -114,7 +114,7 @@ router.post('/new', auth, errForward(async (req, res) => {
 
 // DELETE /policy/delete/:id
 router.delete('/delete/:id', auth, errForward(async (req, res) => {
-    if(req.locals.role !== "CLAIM_ASSESSOR") {
+    if (req.locals.role !== "CLAIM_ASSESSOR") {
         return res.status(400).json({
             err: 'Insuffient privilages to make this action'
         })
@@ -122,14 +122,14 @@ router.delete('/delete/:id', auth, errForward(async (req, res) => {
 
     const deletedPolicy = await prisma.policy.delete({
         where: {
-            id: parseInt(req.params.id)
+            id: +(req.params.id)
         },
         select: {
             id: true
         }
     })
 
-    if(!deletedPolicy) {
+    if (!deletedPolicy) {
         return res.status(500).json({
             err: 'failed to delete policy'
         })

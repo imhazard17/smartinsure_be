@@ -1,3 +1,3 @@
-convertibleToInt = (val) => typeof parseInt(val) !== typeof NaN
+convertibleToInt = val => !isNaN(Number(val))
 
 module.exports = convertibleToInt
