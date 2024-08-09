@@ -7,6 +7,12 @@ const { putObjectUrl, getObjectUrl, deleteObject } = require("../utils/s3");
 const { default: axios } = require("axios");
 const fs = require("fs");
 
+async function removeAllUploadedFiles(files) {
+    await Promise.all(files.map(file => new Promise((resolve, reject) => {
+        fs.unlink(file.path, err => err ? reject() : resolve())
+    })))
+}
+
 // GET /document/:id
 router.get('/:id', auth, errForward(async (req, res) => {
     const document = await prisma.document.findUnique({
@@ -106,9 +112,12 @@ router.get('/claim/:claimId', auth, errForward(async (req, res) => {
 router.post('/upload/:claimId', auth, upload.array('files', 15), errForward(async (req, res) => {
     if (!req.files) {
         return res.status(500).json({
-            err: 'Document upload failed'
+            err: 'File upload failed'
         })
     }
+
+    const documentIds = []
+    const files = Array.from(req.files)
 
     const claim = await prisma.claim.findUnique({
         where: {
@@ -120,17 +129,9 @@ router.post('/upload/:claimId', auth, upload.array('files', 15), errForward(asyn
     })
 
     if (claim.userId !== req.locals.userId) {
+        removeAllUploadedFiles(files)
         return res.status(400).json({
             err: 'Cannot upload document on the claims you dont own'
-        })
-    }
-
-    const documentIds = []
-    const files = Array.from(req.files)
-
-    if (!req.files) {
-        return res.status(500).json({
-            err: 'File upload failed'
         })
     }
 
@@ -144,9 +145,7 @@ router.post('/upload/:claimId', auth, upload.array('files', 15), errForward(asyn
     })
 
     if (docs.length + files.length >= 15) {
-        await Promise.all(files.map(file => new Promise((resolve, reject) => {
-            fs.unlink(file.path, err => err ? reject() : resolve())
-        })))
+        removeAllUploadedFiles(files)
         return res.status(400).json({
             err: 'Cannot have more than 15 documents per claim'
         })
@@ -219,14 +218,9 @@ router.post('/upload/one/:claimId', auth, upload.single('file'), errForward(asyn
     })
 
     if (claim.userId !== req.locals.userId) {
+        fs.unlinkSync(file.path)
         return res.status(400).json({
             err: 'Cannot upload document on the claims you dont own'
-        })
-    }
-
-    if (!file) {
-        return res.status(500).json({
-            err: 'File upload failed'
         })
     }
 
