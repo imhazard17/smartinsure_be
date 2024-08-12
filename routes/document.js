@@ -34,7 +34,7 @@ router.get('/:id', auth, errForward(async (req, res) => {
         })
     }
 
-    const url = await getObjectUrl(`documents/${document.name}`)
+    const url = await getObjectUrl(`medical_reports/${document.name}`)
     return res.status(200).json({
         msg: { url: url, ...document }
     })
@@ -44,7 +44,7 @@ router.get('/:id', auth, errForward(async (req, res) => {
 router.get('/count/:claimId', auth, errForward(async (req, res) => {
     const claim = await prisma.claim.findUnique({
         where: {
-            id: +(req.params.claimId)
+            id: req.params.claimId
         },
         select: {
             userId: true
@@ -59,7 +59,7 @@ router.get('/count/:claimId', auth, errForward(async (req, res) => {
 
     const docs = await prisma.document.findMany({
         where: {
-            claimId: +(req.params.claimId)
+            claimId: req.params.claimId
         },
         select: {
             id: true
@@ -75,7 +75,7 @@ router.get('/count/:claimId', auth, errForward(async (req, res) => {
 router.get('/claim/:claimId', auth, errForward(async (req, res) => {
     const claim = await prisma.claim.findUnique({
         where: {
-            id: +(req.params.claimId)
+            id: req.params.claimId
         },
         select: {
             userId: true
@@ -90,11 +90,11 @@ router.get('/claim/:claimId', auth, errForward(async (req, res) => {
 
     const docs = await prisma.document.findMany({
         where: {
-            claimId: +(req.params.claimId)
+            claimId: req.params.claimId
         }
     })
 
-    const urls = await Promise.all(docs.map(doc => getObjectUrl(`documents/${doc.name}`)))
+    const urls = await Promise.all(docs.map(doc => getObjectUrl(`medical_reports/${doc.name}`)))
 
     const resp = urls.map((url, i) => {
         return {
@@ -121,7 +121,7 @@ router.post('/upload/:claimId', auth, upload.array('files', 15), errForward(asyn
 
     const claim = await prisma.claim.findUnique({
         where: {
-            id: +(req.params.claimId)
+            id: req.params.claimId
         },
         select: {
             userId: true
@@ -137,7 +137,7 @@ router.post('/upload/:claimId', auth, upload.array('files', 15), errForward(asyn
 
     const docs = await prisma.document.findMany({
         where: {
-            claimId: +(req.params.claimId)
+            claimId: req.params.claimId
         },
         select: {
             id: true
@@ -157,7 +157,7 @@ router.post('/upload/:claimId', auth, upload.array('files', 15), errForward(asyn
                 data: {
                     docType: file.mimetype === 'application/pdf' ? 'TEXT' : 'SCAN',
                     name: file.filename,
-                    claimId: +(req.params.claimId),
+                    claimId: req.params.claimId,
                     userId: +(req.locals.userId),
                     originalName: file.originalname
                 },
@@ -166,7 +166,7 @@ router.post('/upload/:claimId', auth, upload.array('files', 15), errForward(asyn
                 }
             })
             documentIds.push(createdDoc.id)
-            const url = await putObjectUrl(file.mimetype, `documents/${file.filename}`)
+            const url = await putObjectUrl(file.mimetype, `medical_reports/${file.filename}`)
             const fileStream = fs.createReadStream(file.path)
             const fileSize = fs.statSync(file.path).size
             const s3Upload = await axios.put(url, fileStream, {
@@ -210,7 +210,7 @@ router.post('/upload/one/:claimId', auth, upload.single('file'), errForward(asyn
 
     const claim = await prisma.claim.findUnique({
         where: {
-            id: +(req.params.claimId)
+            id: req.params.claimId
         },
         select: {
             userId: true
@@ -226,7 +226,7 @@ router.post('/upload/one/:claimId', auth, upload.single('file'), errForward(asyn
 
     const docs = await prisma.document.findMany({
         where: {
-            claimId: +(req.params.claimId)
+            claimId: req.params.claimId
         },
         select: {
             id: true
@@ -245,7 +245,7 @@ router.post('/upload/one/:claimId', auth, upload.single('file'), errForward(asyn
             data: {
                 docType: file.mimetype === 'application/pdf' ? 'TEXT' : 'SCAN',
                 name: file.filename,
-                claimId: +(req.params.claimId),
+                claimId: req.params.claimId,
                 userId: +(req.locals.userId),
                 originalName: file.originalname
             },
@@ -253,7 +253,7 @@ router.post('/upload/one/:claimId', auth, upload.single('file'), errForward(asyn
                 id: true
             }
         })
-        const url = await putObjectUrl(file.mimetype, `documents/${file.filename}`)
+        const url = await putObjectUrl(file.mimetype, `medical_reports/${file.filename}`)
         const fileStream = fs.createReadStream(file.path)
         const fileSize = fs.statSync(file.path).size
         const s3Upload = await axios.put(url, fileStream, {
@@ -312,7 +312,7 @@ router.delete('/delete/:id', auth, errForward(async (req, res) => {
         }
     })
 
-    await deleteObject(`documents/${document.name}`)
+    await deleteObject(`medical_reports/${document.name}`)
 
     return res.status(200).json({
         msg: `Successfully deleted document with id: ${document.id}`
@@ -323,7 +323,7 @@ router.delete('/delete/:id', auth, errForward(async (req, res) => {
 router.delete('/delete/claim/:claimId', auth, errForward(async (req, res) => {
     const claim = await prisma.claim.findUnique({
         where: {
-            id: +(req.params.claimId)
+            id: req.params.claimId
         },
         select: {
             userId: true
@@ -344,7 +344,7 @@ router.delete('/delete/claim/:claimId', auth, errForward(async (req, res) => {
 
     const docs = await prisma.document.findMany({
         where: {
-            claimId: +(req.params.claimId),
+            claimId: req.params.claimId,
         },
         select: {
             name: true
@@ -353,11 +353,11 @@ router.delete('/delete/claim/:claimId', auth, errForward(async (req, res) => {
 
     const deleteDocs = await prisma.document.deleteMany({
         where: {
-            claimId: +(req.params.claimId),
+            claimId: req.params.claimId,
         }
     })
 
-    await Promise.all(docs.map(doc => deleteObject(`documents/${doc.name}`)))
+    await Promise.all(docs.map(doc => deleteObject(`medical_reports/${doc.name}`)))
 
     return res.status(200).json({
         msg: `Number of deleted documents: ${deleteDocs.count}`

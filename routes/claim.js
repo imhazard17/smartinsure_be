@@ -4,41 +4,52 @@ const auth = require("../middlewares/authentication");
 const prisma = require("../utils/db");
 const errForward = require('../utils/errorForward')
 const convertibleToNum = require('../utils/zod_helper')
+const dayjs = require('dayjs')
+const { v6: uuid } = require('uuid');
+const { getObjectUrl } = require("../utils/s3");
 
 const claimSchema = z.object({
-    claimAmount: z.string().refine(convertibleToNum),
+    claimAmount: z.number(),
     claimType: z.string(),
     dateOfIntimation: z.string().date(),
+    dateOfAdmission: z.string().date(),
     desc: z.string().optional(),
-    policyId: z.string().refine(convertibleToNum),
+    policyId: z.string(),
+    title: z.string().min(5).max(150)
 })
 
 const updateClaimSchema = z.object({
-    claimAmount: z.string().refine(convertibleToNum),
+    claimAmount: z.number(),
     claimType: z.string(),
     dateOfIntimation: z.string().date(),
+    dateOfAdmission: z.string().date(),
     desc: z.string().optional(),
+    title: z.string().min(5).max(150)
 })
 
 // GET /claim/my-claims
 router.get('/my-claims', auth, errForward(async (req, res) => {
-    const claim = await prisma.claim.findMany({
+    const claims = await prisma.claim.findMany({
         where: {
             userId: +req.locals.userId
         },
         include: {
-            report: true,
-            documents: true
+            user: {
+                select: {
+                    firstName: true,
+                    lastName: true
+                }
+            },
         }
     })
 
-    if (!claim) {
+    if (!claims) {
         return res.status(400).json({
             err: 'No claims yet'
         })
     }
 
-    return res.status(200).json({ msg: claim })
+    return res.status(200).json({ msg: claims })
 }))
 
 // GET /claim/user/:userId
@@ -72,7 +83,7 @@ router.get('/user/:userId', auth, errForward(async (req, res) => {
 router.get('/:id', auth, errForward(async (req, res) => {
     const claim = await prisma.claim.findUnique({
         where: {
-            id: +req.params.id
+            id: req.params.id
         },
         include: {
             report: true,
@@ -92,12 +103,61 @@ router.get('/:id', auth, errForward(async (req, res) => {
         })
     }
 
+    const urls = await Promise.all(Array.from(claim.documents).map(doc => getObjectUrl(`medical_reports/${doc.name}`)))
+    Array.from(claim.documents).forEach((doc, i) => doc.url = urls[i])
+
     return res.status(200).json({ msg: claim })
+}))
+
+// GET /claim/pending
+router.get('/pending', auth, errForward(async (req, res) => {
+    const { claimsPerPage = 20, pageNumber = 1 } = req.query
+    if (isNaN(Number(claimsPerPage + pageNumber)) || claimsPerPage < 0 || pageNumber < 0 || claimsPerPage > 100) {
+        return res.status(400).json({
+            err: 'Maximum 100 claims per page'
+        })
+    }
+
+    if (req.locals.role !== "CLAIM_ASSESSOR") {
+        return res.status(400).json({
+            err: 'Insuffient privilages'
+        })
+    }
+
+    const claims = await prisma.claim.findMany({
+        where: {
+            report: {
+                approved: null
+            }
+        },
+        orderBy: {
+            createdAt: 'asc'
+        },
+        skip: (pageNumber - 1) * claimsPerPage,
+        take: claimsPerPage,
+        include: {
+            user: {
+                select: {
+                    firstName: true,
+                    lastName: true
+                }
+            }
+        }
+    })
+
+    if (!claims) {
+        return res.status(400).json({
+            err: 'Error fetching claims'
+        })
+    }
+
+    return res.status(200).json({ msg: claims })
 }))
 
 // POST /claim/new
 router.post('/new', auth, errForward(async (req, res) => {
     if (!claimSchema.safeParse(req.body).success) {
+        console.log(claimSchema.safeParse(req.body).error.message)
         return res.status(400).json({
             err: 'Invalid inputs given'
         })
@@ -111,41 +171,55 @@ router.post('/new', auth, errForward(async (req, res) => {
 
     const policy = await prisma.policy.findUnique({
         where: {
-            id: +req.body.policyId,
+            id: req.body.policyId,
         },
         select: {
-            userId: true
+            emails: true,
+            id: true,
+        }
+    })
+    const loggedUser = await prisma.user.findUnique({
+        where: {
+            id: req.locals.userId
+        },
+        select: {
+            email: true
         }
     })
 
-    if (policy.userId !== req.locals.userId) {
+    if (!loggedUser) res.status(400).json({ err: 'Error getting user' })
+
+    console.log(loggedUser.email)
+    console.log(Array.from(policy.emails))
+
+    if (!Array.from(policy.emails).includes(loggedUser.email)) {
         return res.status(400).json({
             err: "Cannot make claim on other users policies"
         })
     }
 
-    const claim = await prisma.claim.create({
+    const createdClaim = await prisma.claim.create({
         data: {
+            id: `SI${dayjs().format('YYYYMMDD')}-${uuid()}-C`,
             claimAmount: req.body.claimAmount,
             claimType: req.body.claimType,
             dateOfIntimation: new Date(req.body.dateOfIntimation).toISOString(),
             desc: req.body.desc,
-            policyId: +req.body.policyId,
-            userId: +req.locals.userId
+            title: req.body.title,
+            policyId: req.body.policyId,
+            userId: +req.locals.userId,
+            hospCity: req.body.hospCity,
+            hospCode: req.body.hospCode,
+            hospName: req.body.hospName,
+            dateOfAdmission: new Date(req.body.dateOfAdmission).toISOString()
         },
         select: {
             id: true
         }
     })
 
-    if (!claim) {
-        return res.status(500).json({
-            err: 'Failed to create claim'
-        })
-    }
-
     return res.status(200).json({
-        msg: `Successfully created claim with id: ${claim.id}`
+        msg: `Successfully created claim with id: ${createdClaim.id}`
     })
 }))
 
@@ -159,7 +233,7 @@ router.put('/update/:id', auth, errForward(async (req, res) => {
 
     const claim = await prisma.claim.findUnique({
         where: {
-            id: +req.params.id
+            id: req.params.id
         },
         select: {
             userId: true
@@ -181,6 +255,11 @@ router.put('/update/:id', auth, errForward(async (req, res) => {
             claimType: req.body.claimType,
             dateOfIntimation: new Date(req.body.dateOfIntimation).toISOString(),
             desc: req.body.desc,
+            title: req.body.title,
+            hospName: req.body.hospName,
+            hospCity: req.body.hospCity,
+            hospCode: req.body.hospCode,
+            dateOfAdmission: new Date(req.body.dateOfAdmission).toISOString(),
         },
         select: {
             id: true
@@ -202,7 +281,7 @@ router.put('/update/:id', auth, errForward(async (req, res) => {
 router.delete('/delete/:id', auth, errForward(async (req, res) => {
     const claim = await prisma.claim.findUnique({
         where: {
-            id: +req.params.id
+            id: req.params.id
         },
         select: {
             userId: true
@@ -217,7 +296,7 @@ router.delete('/delete/:id', auth, errForward(async (req, res) => {
 
     const deletedClaim = await prisma.claim.delete({
         where: {
-            id: +req.params.id,
+            id: req.params.id,
         },
         select: {
             id: true

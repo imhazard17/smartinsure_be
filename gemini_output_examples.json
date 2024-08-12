@@ -1,61 +1,66 @@
 {
     "docwise_example": [
         {
-            "Findings": "There is no evidence of pulmonary emboli in the main pulmonary arteries, lobar arteries, or segmental arteries.  There is no evidence of a pericardial effusion.  There is no evidence of pleural effusion.",
-            "ClinicalIndication": "Evaluation for pulmonary embolism",
-            "TypeOfReportUploaded": "Radiology Report",
-            "MedicalReportName": "Chest CT",
-            "Diagnosis": "No pulmonary embolism",
-            "Impression": "No pulmonary embolism",
-            "Technique": "CT scan of the chest"
+            "Findings": "There are multiple areas of consolidation in the right upper lobe, right middle lobe and right lower lobe. These appear to be associated with a right-sided pleural effusion.",
+            "ClinicalIndication": "Evaluation of dyspnea.",
+            "TypeOfReportUploaded": "CT Chest",
+            "MedicalReportName": "CT Chest Report",
+            "Diagnosis": "Pneumonia",
+            "Impression": "Pneumonia of the right lung with right-sided pleural effusion. ",
+            "Technique": "CT scan of the chest was performed with intravenous contrast administration."
         },
         {
-            "Findings": "There is a transverse fracture of the mid shaft of the radius. There is no evidence of a fracture of the ulna. The distal radioulnar joint is intact. ",
-            "ClinicalIndication": "Evaluation for fracture",
-            "TypeOfReportUploaded": "Radiology Report",
-            "MedicalReportName": "X-ray of the forearm",
-            "Diagnosis": "Transverse fracture of the mid shaft of the radius",
-            "Impression": "Transverse fracture of the mid shaft of the radius",
-            "Technique": "X-ray of the forearm"
+            "Findings": "There is a fracture of the radius, just proximal to the wrist joint.",
+            "ClinicalIndication": "Evaluation of right wrist pain.",
+            "TypeOfReportUploaded": "X-ray",
+            "MedicalReportName": "X-ray Right Forearm Report",
+            "Diagnosis": "Radius Fracture",
+            "Impression": "Fracture of the radius, just proximal to the wrist joint.",
+            "Technique": "X-ray of the right forearm was performed in the anteroposterior and lateral views."
         },
         {
-            "Prognosis": "Good control of Diabetes important",
-            "MedicalReportName": "Apollo 247 Medical Report"
+            "Prognosis": "The prognosis for diabetes mellitus is variable and depends on many factors, including the severity of the disease, the patient's overall health, and the effectiveness of treatment. With proper management, people with diabetes can live long and healthy lives. However, if diabetes is not managed effectively, it can lead to serious complications, such as heart disease, stroke, kidney failure, and blindness. The prognosis for OAB is also variable and depends on the severity of the condition, the patient's overall health, and the effectiveness of treatment. With proper management, people with OAB can live normal lives. However, if OAB is not managed effectively, it can lead to social isolation and embarrassment. ",
+            "MedicalReportName": "Apollo 247 Teleconsultation Report"
         },
         {
-            "Prognosis": "Follow up after 3 months",
-            "MedicalReportName": "Apollo 247 Medical Report"
+            "Prognosis": "The prognosis for ischemic heart disease is variable and depends on many factors, including the severity of the disease, the patient's overall health, and the effectiveness of treatment. With proper management, people with ischemic heart disease can live long and healthy lives. However, if ischemic heart disease is not managed effectively, it can lead to serious complications, such as heart attack, stroke, and heart failure. The prognosis for previous PTCA is generally good. With proper management, people who have had a PTCA can live long and healthy lives. However, there is a risk of complications, such as restenosis (narrowing of the artery), bleeding, and blood clots.",
+            "MedicalReportName": "Apollo 247 Teleconsultation Report"
         }
     ],
     "summary_example": {
-        "Summary": "A 70-year-old male patient presents with urinary frequency, urgency and urgency urinary incontinence, diabetes mellitus, and is prescribed Vesigard, Megatas, Looz syrup, and various diagnostic tests. A 63-year-old male patient presents with ischemic heart disease and is prescribed Cardivas, and various diagnostic tests."
+        "Summary": "A 70-year-old male patient presented with urinary frequency, urgency, and urgency urinary incontinence. He was diagnosed with overactive bladder (OAB) and diabetes mellitus. He is currently taking Mirabegron for OAB but it has been ineffective. He also has controlled diabetes for 8 years and is on oral hypoglycemic agents. The patient was prescribed Vesigard, Megatas, and Looz for the treatment of OAB and constipation. The patient was also advised to follow up after 3 weeks with a bladder diary and to continue good control of his diabetes. A 63-year-old male patient presented with asymptomatic ischemic heart disease and previous percutaneous coronary intervention (PCI). He was prescribed Cardivas for the treatment of ischemic heart disease. He was also advised to stop taking Concor and to continue other medications. The patient was advised to follow up after 3 months."
     },
     "treatments_example": {
         "TreatmentDetails": [
             {
-                "TreatmentDescription": "Urinary frequency, urgency and urgency urinary incontinence",
-                "TypeOfTreatment": "Urinary Incontinence Treatment",
+                "TreatmentDescription": "CT Scan of the chest is a medical imaging test that uses X-rays to create detailed images of the lungs, heart, and other organs in the chest. It is often used to diagnose pneumonia, lung cancer, and other conditions.",
+                "TypeOfTreatment": "Imaging",
                 "Cost": 150
             },
             {
-                "TreatmentDescription": "Diabetes mellitus",
-                "TypeOfTreatment": "Diabetes Treatment",
-                "Cost": 100
+                "TreatmentDescription": "An X-ray of the right forearm is a medical imaging test that uses X-rays to create images of the bones in the right forearm. It is often used to diagnose fractures, sprains, and other conditions.",
+                "TypeOfTreatment": "Imaging",
+                "Cost": 50
             },
             {
-                "TreatmentDescription": "OAB",
-                "TypeOfTreatment": "Overactive Bladder Treatment",
-                "Cost": 75
+                "TreatmentDescription": "Vesigard is a medication used to treat overactive bladder (OAB). It helps to relax the muscles in the bladder, which can reduce the frequency and urgency of urination.",
+                "TypeOfTreatment": "Medication",
+                "Cost": 10
             },
             {
-                "TreatmentDescription": "Ischaemic heart disease",
-                "TypeOfTreatment": "Heart Disease Treatment",
-                "Cost": 200
+                "TreatmentDescription": "Megatas is a medication used to treat constipation. It helps to soften the stool and make it easier to pass.",
+                "TypeOfTreatment": "Medication",
+                "Cost": 15
             },
             {
-                "TreatmentDescription": "Previous PTCA",
-                "TypeOfTreatment": "Cardiac Treatment",
-                "Cost": 150
+                "TreatmentDescription": "Looz is a medication used to treat constipation. It helps to soften the stool and make it easier to pass.",
+                "TypeOfTreatment": "Medication",
+                "Cost": 10
+            },
+            {
+                "TreatmentDescription": "Cardivas is a medication used to treat heart disease. It helps to relax the blood vessels and improve blood flow to the heart.",
+                "TypeOfTreatment": "Medication",
+                "Cost": 20
             }
         ]
     }

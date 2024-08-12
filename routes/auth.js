@@ -194,6 +194,7 @@ router.post('/signup', errForward(async (req, res) => {
 
 // POST /auth/login
 router.post('/login', errForward(async (req, res) => {
+    console.log('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++')
     const loginSchema = z.object({
         email: z.string().email(),
         password: z.string().min(8)
@@ -235,6 +236,7 @@ router.post('/login', errForward(async (req, res) => {
     }
 
     const token = jwt.sign(jwtMsg, process.env.JWT_SECRET)
+    console.log(token)
 
     return res.status(200).json({
         msg: `successfully logged into account with user id: ${user.id}`,

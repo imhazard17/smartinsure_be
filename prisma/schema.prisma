@@ -13,37 +13,41 @@ model User {
   password  String
   firstName String
   lastName  String
-  createdAt DateTime @default(now())
+  createdAt DateTime   @default(now())
   dob       DateTime
   role      Role       @default(POLICY_HOLDER)
   address   String
   phone     String
-  policies  Policy[]
   claims    Claim[]
   documents Document[]
   reports   Report[]
 }
 
 model Policy {
-  id        Int      @id @default(autoincrement())
-  createdAt DateTime @default(now())
-  hospName  String
-  hospCity  String
-  desc      String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId    Int
-  claims    Claim[]
+  id                String   @id
+  policyNumber      Int      @unique
+  createdAt         DateTime @default(now())
+  patientName       String
+  patientDob        DateTime
+  coverageStartDate DateTime
+  claims            Claim[]
+  emails            String[]
 }
 
 model Claim {
-  id               Int        @id @default(autoincrement())
+  id               String     @id
   createdAt        DateTime   @default(now())
-  desc             String
+  title            String
+  desc             String?
   claimType        String
+  hospName         String
+  hospCity         String
+  hospCode         String
+  dateOfAdmission  DateTime
   dateOfIntimation DateTime
-  claimAmount      String
+  claimAmount      Int
   policy           Policy     @relation(fields: [policyId], references: [id], onDelete: Cascade)
-  policyId         Int
+  policyId         String
   documents        Document[]
   report           Report?
   user             User       @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -51,14 +55,14 @@ model Claim {
 }
 
 model Document {
-  id           Int     @id @default(autoincrement())
+  id           Int      @id @default(autoincrement())
   docType      DocType
   name         String
-  createdAt DateTime @default(now())
+  createdAt    DateTime @default(now())
   originalName String
-  claim        Claim   @relation(fields: [claimId], references: [id], onDelete: Cascade)
-  claimId      Int
-  user         User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  claim        Claim    @relation(fields: [claimId], references: [id], onDelete: Cascade)
+  claimId      String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId       Int
 }
 
@@ -68,9 +72,9 @@ model Report {
   estimatedExpenses   Int
   notes               String?
   approved            Boolean?
-  createdAt DateTime @default(now())
+  createdAt           DateTime             @default(now())
   claim               Claim                @relation(fields: [claimId], references: [id], onDelete: Cascade)
-  claimId             Int                  @unique
+  claimId             String               @unique
   user                User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId              Int
   docWiseReport       DocWiseReport?

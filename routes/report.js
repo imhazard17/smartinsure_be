@@ -41,7 +41,7 @@ router.get('/:id', auth, errForward(async (req, res) => {
 router.get('/claim/:claimId', auth, errForward(async (req, res) => {
     const report = await prisma.report.findUnique({
         where: {
-            claimId: +(req.params.claimId)
+            claimId: req.params.claimId
         },
         include: {
             alternateTreatments: true,
@@ -74,21 +74,21 @@ router.get('/generate/:claimId', auth, errForward(async (req, res) => {
 
     const report = await prisma.report.findUnique({
         where: {
-            claimId: +(req.params.claimId)
+            claimId: req.params.claimId
         }
     })
 
     if (report) {
         await prisma.report.delete({
             where: {
-                claimId: +(req.params.claimId)
+                claimId: req.params.claimId
             }
         })
     }
 
     const claim = await prisma.claim.findUnique({
         where: {
-            id: +(req.params.claimId)
+            id: req.params.claimId
         },
         select: {
             userId: true
@@ -97,7 +97,7 @@ router.get('/generate/:claimId', auth, errForward(async (req, res) => {
 
     const docs = await prisma.document.findMany({
         where: {
-            claimId: +(req.params.claimId)
+            claimId: req.params.claimId
         },
         select: {
             name: true
@@ -113,7 +113,7 @@ router.get('/generate/:claimId', auth, errForward(async (req, res) => {
     const folderPath = path.join(__dirname, '..', uuid())
     fs.mkdirSync(folderPath);
     await Promise.all(docs.map(async (doc) => {
-        const url = await getObjectUrl(`documents/${doc.name}`)
+        const url = await getObjectUrl(`medical_reports/${doc.name}`)
         return downloadFile(url, path.join(folderPath, doc.name))
     }))
 
@@ -128,7 +128,7 @@ router.get('/generate/:claimId', auth, errForward(async (req, res) => {
             combinedSummary: summary,
             estimatedExpenses,
             userId: +(claim.userId),
-            claimId: +(req.params.claimId),
+            claimId: req.params.claimId,
         },
         select: {
             id: true
@@ -201,7 +201,7 @@ router.get('/summary/generate/:id', auth, errForward(async (req, res) => {
     const folderPath = path.join(__dirname, '..', uuid())
     fs.mkdirSync(folderPath);
     await Promise.all(docs.map(async (doc) => {
-        const url = await getObjectUrl(`documents/${doc.name}`)
+        const url = await getObjectUrl(`medical_reports/${doc.name}`)
         return downloadFile(url, path.join(folderPath, doc.name))
     }))
 
@@ -252,7 +252,7 @@ router.get('/treatments/generate/:id', auth, errForward(async (req, res) => {
     const folderPath = path.join(__dirname, '..', uuid())
     fs.mkdirSync(folderPath);
     await Promise.all(docs.map(async (doc) => {
-        const url = await getObjectUrl(`documents/${doc.name}`)
+        const url = await getObjectUrl(`medical_reports/${doc.name}`)
         return downloadFile(url, path.join(folderPath, doc.name))
     }))
 
@@ -303,7 +303,7 @@ router.get('/docwise/generate/:id', auth, errForward(async (req, res) => {
     const folderPath = path.join(__dirname, '..', uuid())
     fs.mkdirSync(folderPath);
     await Promise.all(docs.map(async (doc) => {
-        const url = await getObjectUrl(`documents/${doc.name}`)
+        const url = await getObjectUrl(`medical_reports/${doc.name}`)
         return downloadFile(url, path.join(folderPath, doc.name))
     }))
 
@@ -452,7 +452,7 @@ router.delete('/delete/:claimId', auth, errForward(async (req, res) => {
 
     const deletedReport = await prisma.report.delete({
         where: {
-            claimId: +(req.params.claimId)
+            claimId: req.params.claimId
         },
         select: {
             id: true

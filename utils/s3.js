@@ -34,7 +34,6 @@ exports.putObjectUrl = async (contentType, key) => {
 }
 
 exports.deleteObject = async (key) => {
-    if (key.toString().endsWith('490.jpg')) { key = key.slice(2) }
     const command = new DeleteObjectCommand({
         Bucket: process.env.S3_BUCKET_NAME,
         Key: key

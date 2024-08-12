@@ -6,9 +6,11 @@ const reportRouter = require('./routes/report')
 const policyRouter = require('./routes/policy')
 const documentRouter = require('./routes/document')
 const error = require('./middlewares/error')
+const cors = require('cors')
 
 const app = express()
 
+app.use(cors())
 app.use(express.json())
 app.use('/claim', claimRouter)
 app.use('/report', reportRouter)

@@ -11,10 +11,10 @@ const removeNewlines = (str) => {
 const prompts = {
     "image": `Please provide type of report uploaded, technique, diagnosis details, findings, clinical indication and
     impression for this medical report also also provide medical report name for each of the files. Reply with only one JSON per file and do not wrap JSON with \`\`json\`\`. MANDATORILY RETURN A LIST OF JSON with format of each JSON given below:
-    {"Findings":"Findings of type Text","ClinicalIndication":"Clinical Indication of type Text","TypeOfReportUploaded":"Type Of Report Uploaded of type Text","MedicalReportName":"Medical Report Name of type Text","Diagnosis":"Diagnosis of type Text", "Impression":"Impression of type Text","Technique":"Technique of type Text"}`,
+    {"Findings":"Findings of type Text","ClinicalIndication":"Clinical Indication of type Text","TypeOfReportUploaded":"Type Of Report Uploaded of type Text","MedicalReportName":"Unique medical Report Name of type Text","Diagnosis":"Diagnosis of type Text", "Impression":"Impression of type Text","Technique":"Technique of type Text"}`,
 
     "pdf": `Please provide medical report name and provide prognosis details for each of the files. Reply with only one JSON per file and do not wrap JSON with \`\`json\`\`. MANDATORILY RETURN A LIST OF JSON with format of each JSON given below:
-    {"Prognosis":"Prognosis of type Text","MedicalReportName":"Medical Report Name of type Text"}`,
+    {"Prognosis":"Prognosis of type Text","MedicalReportName":"Unique medical Report Name of type Text"}`,
 
     "treatment": `Please provide different treatment details with brief description and associated cost for all pdf and image files uploaded in the previous prompts in dollars and if its a range then return the average cost Reply with only one JSON in and do not wrap JSON with \`\`json\`\`. The JSON format specified below:
     {"TreatmentDetails":[{"TreatmentDescription":"Treatment Description of type Text","TypeOfTreatment":"TypeOfTreatment of type Text","Cost":"Cost of type Number"}]}`,
