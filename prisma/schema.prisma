@@ -69,9 +69,8 @@ model Document {
 model Report {
   id                  Int                  @id @default(autoincrement())
   combinedSummary     String
-  estimatedExpenses   Int
   notes               String?
-  approved            Boolean?
+  approved            ApprovedType        @default(STALL)
   createdAt           DateTime             @default(now())
   claim               Claim                @relation(fields: [claimId], references: [id], onDelete: Cascade)
   claimId             String               @unique
@@ -110,4 +109,10 @@ enum Role {
 enum DocType {
   SCAN
   TEXT
+}
+
+enum ApprovedType {
+  YES
+  NO
+  STALL
 }

@@ -3,6 +3,7 @@ const { S3Client, GetObjectCommand, PutObjectCommand, DeleteObjectCommand } = re
 require('dotenv').config()
 const https = require('https');
 const fs = require('fs');
+const mime = require('mime-types')
 
 const s3Client = new S3Client({
     region: process.env.S3_BUCKET_REGION,
@@ -15,18 +16,20 @@ const s3Client = new S3Client({
 exports.getObjectUrl = async (key) => {
     const command = new GetObjectCommand({
         Bucket: process.env.S3_BUCKET_NAME,
-        Key: key
+        Key: key,
+        ResponseContentDisposition: 'inline'
     });
 
     const url = await getSignedUrl(s3Client, command, { expiresIn: 86400 });
     return url
 }
 
-exports.putObjectUrl = async (contentType, key) => {
+exports.putObjectUrl = async (key) => {
+    const fileName = key.split('/').at(-1)
     const command = new PutObjectCommand({
         Bucket: process.env.S3_BUCKET_NAME,
         Key: key,
-        ContentType: contentType
+        ContentType: mime.lookup(fileName)
     });
 
     const url = await getSignedUrl(s3Client, command, { expiresIn: 2 * 60 });
@@ -36,7 +39,7 @@ exports.putObjectUrl = async (contentType, key) => {
 exports.deleteObject = async (key) => {
     const command = new DeleteObjectCommand({
         Bucket: process.env.S3_BUCKET_NAME,
-        Key: key
+        Key: key,
     });
 
     await s3Client.send(command)

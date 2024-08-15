@@ -18,9 +18,16 @@ router.get('/details/:userId', auth, errForward(async (req, res) => {
             id: +(req.params.userId),
         },
         include: {
-            policies: true,
-            claims: true,
-            documents: true
+            claims: {
+                include: {
+                    user: {
+                        select: {
+                            firstName: true,
+                            lastName: true,
+                        }
+                    }
+                }
+            },
         }
     })
 
@@ -42,9 +49,16 @@ router.get('/my-details', auth, errForward(async (req, res) => {
             id: +(req.locals.userId),
         },
         include: {
-            policies: true,
-            claims: true,
-            documents: true
+            claims: {
+                include: {
+                    user: {
+                        select: {
+                            firstName: true,
+                            lastName: true,
+                        }
+                    }
+                }
+            },
         }
     })
 
@@ -59,8 +73,8 @@ router.get('/my-details', auth, errForward(async (req, res) => {
     return res.status(200).json({ msg: user })
 }))
 
-// DELETE /user/delete-account
-router.delete('/delete-account', auth, errForward(async (req, res) => {
+// PUT /user/delete-account
+router.put('/delete-account', auth, errForward(async (req, res) => {
     if (!z.object({ password: z.string().min() }).safeParse(req.body)) {
         return res.status(400).json({
             err: 'Invalid inputs sent'

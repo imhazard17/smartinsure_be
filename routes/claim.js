@@ -79,6 +79,58 @@ router.get('/user/:userId', auth, errForward(async (req, res) => {
     return res.status(200).json({ msg: claims })
 }))
 
+// GET /claim/pending
+router.get('/pending', auth, errForward(async (req, res) => {
+    const { claimsPerPage = 20, pageNumber = 1 } = req.query
+    if (isNaN(Number(claimsPerPage + pageNumber)) || claimsPerPage < 0 || pageNumber < 0 || claimsPerPage > 100) {
+        return res.status(400).json({
+            err: 'Maximum 100 claims per page'
+        })
+    }
+
+    if (req.locals.role !== "CLAIM_ASSESSOR") {
+        return res.status(400).json({
+            err: 'Insuffient privilages'
+        })
+    }
+
+    const claims = await prisma.claim.findMany({
+        where: {
+            OR: [
+                {
+                    report: {
+                        approved: 'STALL',
+                    }
+                },
+                {
+                    report: null
+                }
+            ]
+        },
+        orderBy: {
+            createdAt: 'asc'
+        },
+        skip: (pageNumber - 1) * claimsPerPage,
+        take: claimsPerPage,
+        include: {
+            user: {
+                select: {
+                    firstName: true,
+                    lastName: true
+                }
+            }
+        }
+    })
+
+    if (!claims) {
+        return res.status(400).json({
+            err: 'Error fetching claims'
+        })
+    }
+
+    return res.status(200).json({ msg: claims })
+}))
+
 // GET /claim/:id
 router.get('/:id', auth, errForward(async (req, res) => {
     const claim = await prisma.claim.findUnique({
@@ -109,55 +161,9 @@ router.get('/:id', auth, errForward(async (req, res) => {
     return res.status(200).json({ msg: claim })
 }))
 
-// GET /claim/pending
-router.get('/pending', auth, errForward(async (req, res) => {
-    const { claimsPerPage = 20, pageNumber = 1 } = req.query
-    if (isNaN(Number(claimsPerPage + pageNumber)) || claimsPerPage < 0 || pageNumber < 0 || claimsPerPage > 100) {
-        return res.status(400).json({
-            err: 'Maximum 100 claims per page'
-        })
-    }
-
-    if (req.locals.role !== "CLAIM_ASSESSOR") {
-        return res.status(400).json({
-            err: 'Insuffient privilages'
-        })
-    }
-
-    const claims = await prisma.claim.findMany({
-        where: {
-            report: {
-                approved: null
-            }
-        },
-        orderBy: {
-            createdAt: 'asc'
-        },
-        skip: (pageNumber - 1) * claimsPerPage,
-        take: claimsPerPage,
-        include: {
-            user: {
-                select: {
-                    firstName: true,
-                    lastName: true
-                }
-            }
-        }
-    })
-
-    if (!claims) {
-        return res.status(400).json({
-            err: 'Error fetching claims'
-        })
-    }
-
-    return res.status(200).json({ msg: claims })
-}))
-
 // POST /claim/new
 router.post('/new', auth, errForward(async (req, res) => {
     if (!claimSchema.safeParse(req.body).success) {
-        console.log(claimSchema.safeParse(req.body).error.message)
         return res.status(400).json({
             err: 'Invalid inputs given'
         })
@@ -188,9 +194,6 @@ router.post('/new', auth, errForward(async (req, res) => {
     })
 
     if (!loggedUser) res.status(400).json({ err: 'Error getting user' })
-
-    console.log(loggedUser.email)
-    console.log(Array.from(policy.emails))
 
     if (!Array.from(policy.emails).includes(loggedUser.email)) {
         return res.status(400).json({
@@ -236,7 +239,8 @@ router.put('/update/:id', auth, errForward(async (req, res) => {
             id: req.params.id
         },
         select: {
-            userId: true
+            userId: true,
+            id: true
         }
     })
 
@@ -248,7 +252,7 @@ router.put('/update/:id', auth, errForward(async (req, res) => {
 
     const updatedClaim = await prisma.claim.update({
         where: {
-            id: +req.params.id,
+            id: claim.id,
         },
         data: {
             claimAmount: req.body.claimAmount,

@@ -6,6 +6,7 @@ const upload = require('../middlewares/multer')
 const { putObjectUrl, getObjectUrl, deleteObject } = require("../utils/s3");
 const { default: axios } = require("axios");
 const fs = require("fs");
+const mime = require('mime-types')
 
 async function removeAllUploadedFiles(files) {
     await Promise.all(files.map(file => new Promise((resolve, reject) => {
@@ -28,7 +29,6 @@ router.get('/:id', auth, errForward(async (req, res) => {
     }
 
     if (document.userId !== req.locals.userId && req.locals.role !== "CLAIM_ASSESSOR") {
-        console.log(req.locals)
         return res.status(400).json({
             err: 'Insufficient privilages to access document',
         })
@@ -166,12 +166,12 @@ router.post('/upload/:claimId', auth, upload.array('files', 15), errForward(asyn
                 }
             })
             documentIds.push(createdDoc.id)
-            const url = await putObjectUrl(file.mimetype, `medical_reports/${file.filename}`)
+            const url = await putObjectUrl(`medical_reports/${file.filename}`)
             const fileStream = fs.createReadStream(file.path)
             const fileSize = fs.statSync(file.path).size
             const s3Upload = await axios.put(url, fileStream, {
                 headers: {
-                    'Content-Type': 'application/octet-stream',
+                    'Content-Type': mime.lookup(file.filename),
                     'Content-Length': fileSize,
                 }
             })
@@ -253,12 +253,12 @@ router.post('/upload/one/:claimId', auth, upload.single('file'), errForward(asyn
                 id: true
             }
         })
-        const url = await putObjectUrl(file.mimetype, `medical_reports/${file.filename}`)
+        const url = await putObjectUrl(`medical_reports/${file.filename}`)
         const fileStream = fs.createReadStream(file.path)
         const fileSize = fs.statSync(file.path).size
         const s3Upload = await axios.put(url, fileStream, {
             headers: {
-                'Content-Type': 'application/octet-stream',
+                'Content-Type': mime.lookup(file.filename),
                 'Content-Length': fileSize,
             }
         })
@@ -274,7 +274,6 @@ router.post('/upload/one/:claimId', auth, upload.single('file'), errForward(asyn
             msg: `Document with id: ${createdDoc.id} created successfully`,
         })
     } catch (err) {
-        console.log(err)
         return res.status(500).json({
             err: 'document creation failed'
         })
