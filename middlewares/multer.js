@@ -28,7 +28,7 @@ const storage = multer.diskStorage({
 module.exports = multer({
     storage: storage,
     limits: {
-        fileSize: 3 * 1024 * 1024
+        fileSize: 3145728
     },
     fileFilter: (req, file, cb) => {
         if (file.mimetype.startsWith('image/') || file.mimetype === 'application/pdf') {

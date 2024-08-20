@@ -163,9 +163,13 @@ router.get('/:id', auth, errForward(async (req, res) => {
 
 // POST /claim/new
 router.post('/new', auth, errForward(async (req, res) => {
-    if (!claimSchema.safeParse(req.body).success) {
+    try {
+        claimSchema.parse(req.body);
+    } catch (error) {
+        let errors = ''
+        error.issues.forEach((issue) => errors += `${issue.path.join('.')} - ${issue.message}\n`);
         return res.status(400).json({
-            err: 'Invalid inputs given'
+            err: `Invalid inputs given.\n${errors}`
         })
     }
 
