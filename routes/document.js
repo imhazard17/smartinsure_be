@@ -51,6 +51,12 @@ router.get('/count/:claimId', auth, errForward(async (req, res) => {
         }
     })
 
+    if(!claim) {
+        return res.status(400).json({
+            err: 'No such claim found'
+        })
+    }
+
     if (claim.userId !== req.locals.userId && req.locals.role !== "CLAIM_ASSESSOR") {
         return res.status(400).json({
             err: 'Insufficient permission to access documents'
@@ -119,6 +125,8 @@ router.post('/upload/:claimId', auth, upload.array('files', 15), errForward(asyn
     const documentIds = []
     const files = Array.from(req.files)
 
+    const fileTypes = req.body.fileTypes.split(',')
+
     const claim = await prisma.claim.findUnique({
         where: {
             id: req.params.claimId
@@ -144,18 +152,18 @@ router.post('/upload/:claimId', auth, upload.array('files', 15), errForward(asyn
         }
     })
 
-    if (docs.length + files.length >= 15) {
+    if (docs.length + files.length > 15) {
         removeAllUploadedFiles(files)
         return res.status(400).json({
             err: 'Cannot have more than 15 documents per claim'
         })
     }
 
-    const uploads = files.map((file) => {
+    const uploads = files.map((file, i) => {
         return new Promise(async (resolve, _) => {
             const createdDoc = await prisma.document.create({
                 data: {
-                    docType: file.mimetype === 'application/pdf' ? 'TEXT' : 'SCAN',
+                    docType: fileTypes[i],
                     name: file.filename,
                     claimId: req.params.claimId,
                     userId: +(req.locals.userId),
