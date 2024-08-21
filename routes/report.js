@@ -439,7 +439,7 @@ router.delete('/delete/:reportId', auth, errForward(async (req, res) => {
 
     const deletedReport = await prisma.report.delete({
         where: {
-            id: req.params.reportId
+            id: +req.params.reportId
         },
         select: {
             id: true

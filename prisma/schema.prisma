@@ -70,7 +70,7 @@ model Report {
   id                  Int                  @id @default(autoincrement())
   combinedSummary     String
   notes               String?
-  approved            ApprovedType        @default(STALL)
+  approved            ApprovedType         @default(STALL)
   createdAt           DateTime             @default(now())
   claim               Claim                @relation(fields: [claimId], references: [id], onDelete: Cascade)
   claimId             String               @unique
@@ -99,6 +99,13 @@ model Otp {
   email    String
   code     String
   expireAt DateTime
+}
+
+model Hosp {
+  id   Int    @id @default(autoincrement())
+  code String
+  name String
+  city String
 }
 
 enum Role {

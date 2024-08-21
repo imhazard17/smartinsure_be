@@ -65,8 +65,12 @@ router.get('/user/:userId', auth, errForward(async (req, res) => {
             userId: +req.params.userId
         },
         include: {
-            report: true,
-            documents: true
+            user: {
+                select: {
+                    firstName: true,
+                    lastName: true
+                }
+            },
         }
     })
 

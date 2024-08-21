@@ -96,6 +96,12 @@ router.post('/signup', errForward(async (req, res) => {
     // then accept otp and see if it matches the otp with the email with exp time less than current time
     // if yes create new user
 
+    if (req.body.password !== req.body.confirmPassword) {
+        return res.status(400).json({
+            err: 'The password entered does not match the confirm password'
+        })
+    }
+
     const authSchema = z.object({
         email: z.string().email(),
         password: z.string().min(8),
@@ -128,9 +134,20 @@ router.post('/signup', errForward(async (req, res) => {
         })
     }
 
-    if (req.body.password !== req.body.confirmPassword) {
+    const emailInPolicy = await prisma.policy.findFirst({
+        where: {
+            emails: {
+                has: req.body.email
+            }
+        },
+        select: {
+            id: true
+        }
+    })
+
+    if (!emailInPolicy) {
         return res.status(400).json({
-            err: 'The password entered does not match the confirm password'
+            err: `No policies for email: ${req.body.email} in our databses yet`
         })
     }
 
