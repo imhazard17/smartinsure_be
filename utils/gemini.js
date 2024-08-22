@@ -16,8 +16,8 @@ const prompts = {
     "pdf": `Please provide medical report name and provide prognosis details for each of the files. Reply with only one JSON per file and do not wrap JSON with \`\`json\`\`. MANDATORILY RETURN A LIST OF JSON with format of each JSON given below:
     {"Prognosis":"Prognosis of type Text","MedicalReportName":"Unique medical Report Name of type Text"}`,
 
-    "treatment": `Please provide different treatment details with brief description and associated cost for all pdf and image files uploaded in the previous prompts in dollars and if its a range then return the average cost Reply with only one JSON in and do not wrap JSON with \`\`json\`\`. The JSON format specified below:
-    {"TreatmentDetails":[{"TreatmentDescription":"Treatment Description of type Text","TypeOfTreatment":"TypeOfTreatment of type Text","Cost":"Cost of type Number"}]}`,
+    "treatment": `Please provide different treatment details with brief description and associated cost for all pdf and image files uploaded in the previous prompts in dollars and if its a range then return the average cost in rupees. Reply with only one JSON in and do not wrap JSON with \`\`json\`\`. The JSON format specified below:
+    {"TreatmentDetails":[{"TreatmentDescription":"Treatment Description of type Text","TypeOfTreatment":"TypeOfTreatment of type Text","Cost":"Cost of type Number in rupees"}]}`,
 
     "summary": `Please provide a clinical summary for all pdf and image files in previous prompts. Reply with only one JSON in and do not wrap JSON with \`\`json\`\` also do not provide any new line charecter. The JSON format specified below:
     {"Summary":"Summary of type Text"}`
