@@ -16,6 +16,7 @@ router.get('/details/:userId', auth, errForward(async (req, res) => {
     const user = await prisma.user.findUnique({
         where: {
             id: +(req.params.userId),
+            role: "POLICY_HOLDER",
         },
         include: {
             claims: {
@@ -159,6 +160,9 @@ router.get('/get-all', auth, errForward(async (req, res) => {
     }
 
     const users = await prisma.user.findMany({
+        where: {
+            role: "POLICY_HOLDER"
+        },
         select: {
             firstName: true,
             lastName: true,
