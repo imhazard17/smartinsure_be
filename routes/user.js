@@ -38,6 +38,7 @@ router.get('/details/:userId', auth, errForward(async (req, res) => {
     }
 
     delete user['password']
+    delete user['email']
 
     return res.status(200).json({ msg: user })
 }))
@@ -69,6 +70,7 @@ router.get('/my-details', auth, errForward(async (req, res) => {
     }
 
     delete user['password']
+    delete user['email']
 
     return res.status(200).json({ msg: user })
 }))
@@ -146,6 +148,32 @@ router.put('/promote-to-claim-assessor/:userId', auth, errForward(async (req, re
     return res.status(200).json({
         msg: `User with id: ${resp.id} to role: ${resp.role}`,
     })
+}))
+
+// GET /user/get-all
+router.get('/get-all', auth, errForward(async (req, res) => {
+    if (req.locals.role !== "CLAIM_ASSESSOR") {
+        return res.status(400).json({
+            err: 'Insuffient privilages to make this action'
+        })
+    }
+
+    const users = await prisma.user.findMany({
+        select: {
+            firstName: true,
+            lastName: true,
+            role: true,
+            id: true
+        }
+    })
+
+    if (!users) {
+        return res.status(500).json({
+            err: 'Error fetching users'
+        })
+    }
+
+    return res.status(200).json({ msg: users })
 }))
 
 module.exports = router
