@@ -10,10 +10,10 @@ const removeNewlines = (str) => {
 
 const prompts = {
     "image": `Please provide type of report uploaded, technique, diagnosis details, findings, clinical indication and
-    impression for this medical report also also provide medical report name for each of the files. Reply with only one JSON per file and do not wrap JSON with \`\`json\`\`. Return a LIST OF JSON with format of each JSON element given below:
+    impression for this medical report also provide medical report name for each of the files. Reply with only one JSON per one uploaded file and do not wrap JSON with \`\`json\`\`. Return a LIST OF JSON with format of each JSON element given below:
     {"Findings":"Findings of type Text","ClinicalIndication":"Clinical Indication of type Text","TypeOfReportUploaded":"Type Of Report Uploaded of type Text","MedicalReportName":"Unique medical Report Name of type Text","Diagnosis":"Diagnosis of type Text", "Impression":"Impression of type Text","Technique":"Technique of type Text"}`,
 
-    "pdf": `Please provide medical report name and provide prognosis details for each of the files. Reply with only one JSON per file and do not wrap JSON with \`\`json\`\`. Return A LIST OF JSON with format of each JSON element given below:
+    "pdf": `Please provide medical report name and provide prognosis details for each of the files. Reply with only one JSON per one uploaded file and do not wrap JSON with \`\`json\`\`. Return A LIST OF JSON with format of each JSON element given below:
     {"Prognosis":"Prognosis of type Text","MedicalReportName":"Unique medical Report Name of type Text"}`,
 
     "treatment": `Please provide different treatment details with brief description and associated cost for all pdf and image files uploaded in the previous prompts in dollars and if its a range then return the average cost in rupees. Reply with only one JSON in and do not wrap JSON with \`\`json\`\`. The JSON format specified below:
@@ -42,13 +42,22 @@ exports.generateReport = async (folderPath) => {
     const files = fs.readdirSync(folderPath)
     files.forEach(file => fileParts.push(fileToGenerativePart(path.join(folderPath, file), mime.lookup(file))))
 
-    let result = await chat.sendMessage([prompts['image'], ...fileParts.filter(part => part.inlineData.mimeType.startsWith('image'))]);
-    let response = result.response;
-    let docWiseReport = removeNewlines(response.text()).slice(0, -1) + ','
+    const [textFileParts, scanFileParts] = [[...fileParts.filter(part => part.inlineData.mimeType.endsWith('pdf'))], [...fileParts.filter(part => part.inlineData.mimeType.startsWith('image'))]]
+    let [imgDWresp, txtDWresp] = [[], []]
 
-    result = await chat.sendMessage([prompts['pdf'], ...fileParts.filter(part => part.inlineData.mimeType.endsWith('pdf'))]);
-    response = result.response;
-    docWiseReport += removeNewlines(response.text()).slice(1)
+    if (scanFileParts.length !== 0) {
+        let result = await chat.sendMessage([prompts['image'], scanFileParts]);
+        let response = result.response;
+        imgDWresp = JSON.parse(response.text())
+    }
+
+    if (textFileParts.length !== 0) {
+        result = await chat.sendMessage([prompts['pdf'], textFileParts]);
+        response = result.response;
+        txtDWresp = JSON.parse(response.text())
+    }
+
+    let docWiseReport = JSON.stringify([...imgDWresp, ...txtDWresp])
 
     result = await chat.sendMessage([prompts['treatment'], ...fileParts]);
     response = result.response;
@@ -100,13 +109,22 @@ exports.generateDocwise = async (folderPath) => {
     const files = fs.readdirSync(folderPath)
     files.forEach(file => fileParts.push(fileToGenerativePart(path.join(folderPath, file), mime.lookup(file))))
 
-    let result = await model.generateContent([prompts['image'], ...fileParts.filter(part => part.inlineData.mimeType.startsWith('image'))]);
-    let response = result.response;
-    let docWiseReport = removeNewlines(response.text()).slice(0, -1) + ','
+    const [textFileParts, scanFileParts] = [[...fileParts.filter(part => part.inlineData.mimeType.endsWith('pdf'))], [...fileParts.filter(part => part.inlineData.mimeType.startsWith('image'))]]
+    let [imgDWresp, txtDWresp] = [[], []]
 
-    result = await model.generateContent([prompts['pdf'], ...fileParts.filter(part => part.inlineData.mimeType.endsWith('pdf'))]);
-    response = result.response;
-    docWiseReport += removeNewlines(response.text()).slice(1)
-    
+    if (scanFileParts.length !== 0) {
+        let result = await model.generateContent([prompts['image'], scanFileParts]);
+        let response = result.response;
+        imgDWresp = JSON.parse(response.text())
+    }
+
+    if (textFileParts.length !== 0) {
+        result = await model.generateContent([prompts['pdf'], textFileParts]);
+        response = result.response;
+        txtDWresp = JSON.parse(response.text())
+    }
+
+    let docWiseReport = JSON.stringify([...imgDWresp, ...txtDWresp])
+
     return docWiseReport
 }
