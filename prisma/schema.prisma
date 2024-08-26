@@ -24,8 +24,7 @@ model User {
 }
 
 model Policy {
-  id                String   @id
-  policyNumber      Int      @unique
+  id                String   @id @unique
   createdAt         DateTime @default(now())
   patientName       String
   patientDob        DateTime

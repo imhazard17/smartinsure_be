@@ -3,11 +3,11 @@ const errForward = require('../utils/errorForward')
 const auth = require('../middlewares/authentication');
 const prisma = require("../utils/db");
 
-// GET /policy/:policyNumber
-router.get('/:policyNumber', auth, errForward(async (req, res) => {
+// GET /policy/:id
+router.get('/:id', auth, errForward(async (req, res) => {
     const policy = await prisma.policy.findUnique({
         where: {
-            policyNumber: +req.params.policyNumber
+            id: req.params.id
         },
         include: {
             claims: {
@@ -49,8 +49,8 @@ router.get('/:policyNumber', auth, errForward(async (req, res) => {
     return res.status(200).json({ msg: policy })
 }))
 
-// GET /policy/policyNumbers/:userId
-router.get('/policyNumbers/:userId', auth, errForward(async (req, res) => {
+// GET /policy/user-policies/:userId
+router.get('/user-policies/:userId', auth, errForward(async (req, res) => {
     const user = await prisma.user.findUnique({
         where: {
             id: +req.params.userId
@@ -65,25 +65,25 @@ router.get('/policyNumbers/:userId', auth, errForward(async (req, res) => {
         })
     }
 
-    const policyNumbers = await prisma.policy.findMany({
+    const policyIds = await prisma.policy.findMany({
         where: {
             emails: {
                 has: user.email
             }
         },
         select: {
-            policyNumber: true
+            id: true
         }
     })
 
-    if(!policyNumbers) {
+    if(!policyIds) {
         return res.status(500).json({
             err: 'Error in fetching policy numbers'
         })
     }
 
     return res.status(200).json({
-        msg: policyNumbers
+        msg: policyIds
     })
 }))
 

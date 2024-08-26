@@ -211,7 +211,7 @@ router.post('/new', auth, errForward(async (req, res) => {
 
     const createdClaim = await prisma.claim.create({
         data: {
-            id: `SI${dayjs().format('YYYYMMDD')}-${uuid()}-C`,
+            id: `SI${dayjs().format('YYYYMMDD')}-${uuid().split('-')[0]}-C`,
             claimAmount: req.body.claimAmount,
             claimType: req.body.claimType,
             dateOfIntimation: new Date(req.body.dateOfIntimation).toISOString(),
