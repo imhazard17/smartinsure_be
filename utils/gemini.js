@@ -16,7 +16,7 @@ const prompts = {
     "pdf": `Please provide medical report name and provide prognosis details for each of the files. Reply with only one JSON per one uploaded file and do not wrap JSON with \`\`json\`\`. Return A LIST OF JSON with format of each JSON element given below:
     {"Prognosis":"Prognosis of type Text","MedicalReportName":"Unique medical Report Name of type Text"}`,
 
-    "treatment": `Please provide different treatment details with brief description and associated cost for all pdf and image files uploaded in the previous prompts in dollars and if its a range then return the average cost in rupees. Reply with only one JSON in and do not wrap JSON with \`\`json\`\`. The JSON format specified below:
+    "treatment": `Please provide a list of different treatment details with brief description and associated cost for all pdf and image files uploaded in the previous prompts in rupees and if its a range then return the LOWEST cost in rupees. Reply with only one JSON in and do not wrap JSON with \`\`json\`\`. The JSON format specified below:
     {"TreatmentDetails":[{"TreatmentDescription":"Treatment Description of type Text","TypeOfTreatment":"TypeOfTreatment of type Text","Cost":"Cost of type Number in rupees"}]}`,
 
     "summary": `Please provide a clinical summary for all pdf and image files in previous prompts. Reply with only one JSON in and do not wrap JSON with \`\`json\`\` also do not provide any new line charecter. The JSON format specified below:
@@ -34,7 +34,7 @@ function fileToGenerativePart(path, mimeType) {
     };
 }
 
-exports.generateReport = async (folderPath) => {
+exports.generateReport = async (folderPath, docTypes) => {
     const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
     const chat = model.startChat()
 
@@ -42,7 +42,14 @@ exports.generateReport = async (folderPath) => {
     const files = fs.readdirSync(folderPath)
     files.forEach(file => fileParts.push(fileToGenerativePart(path.join(folderPath, file), mime.lookup(file))))
 
-    const [textFileParts, scanFileParts] = [[...fileParts.filter(part => part.inlineData.mimeType.endsWith('pdf'))], [...fileParts.filter(part => part.inlineData.mimeType.startsWith('image'))]]
+    const [textFileParts, scanFileParts] = [[], []]
+    fileParts.forEach((filePart, i) => {
+        if (docTypes[i] === "SCAN") {
+            scanFileParts.push(filePart)
+        } else if (docTypes[i] === "TEXT") {
+            textFileParts.push(filePart)
+        }
+    })
     let [imgDWresp, txtDWresp] = [[], []]
 
     if (scanFileParts.length !== 0) {
@@ -102,14 +109,21 @@ exports.generateTreatments = async (folderPath) => {
     return treatmentDetails
 }
 
-exports.generateDocwise = async (folderPath) => {
+exports.generateDocwise = async (folderPath, docTypes) => {
     const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
     const fileParts = []
     const files = fs.readdirSync(folderPath)
     files.forEach(file => fileParts.push(fileToGenerativePart(path.join(folderPath, file), mime.lookup(file))))
 
-    const [textFileParts, scanFileParts] = [[...fileParts.filter(part => part.inlineData.mimeType.endsWith('pdf'))], [...fileParts.filter(part => part.inlineData.mimeType.startsWith('image'))]]
+    const [textFileParts, scanFileParts] = [[], []]
+    fileParts.forEach((filePart, i) => {
+        if (docTypes[i] === "SCAN") {
+            scanFileParts.push(filePart)
+        } else if (docTypes[i] === "TEXT") {
+            textFileParts.push(filePart)
+        }
+    })
     let [imgDWresp, txtDWresp] = [[], []]
 
     if (scanFileParts.length !== 0) {

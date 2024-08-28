@@ -100,7 +100,8 @@ router.get('/generate/:claimId', auth, errForward(async (req, res) => {
             claimId: req.params.claimId
         },
         select: {
-            name: true
+            name: true,
+            docType: true
         }
     })
 
@@ -110,14 +111,16 @@ router.get('/generate/:claimId', auth, errForward(async (req, res) => {
         })
     }
 
+    const docTypes = []
     const folderPath = path.join(__dirname, '..', uuid())
     fs.mkdirSync(folderPath);
     await Promise.all(docs.map(async (doc) => {
+        docTypes.push(doc.docType)
         const url = await getObjectUrl(`medical_reports/${doc.name}`)
         return downloadFile(url, path.join(folderPath, doc.name))
     }))
 
-    const { docWiseReport, treatmentDetails, summary } = await generateReport(folderPath)
+    const { docWiseReport, treatmentDetails, summary } = await generateReport(folderPath, docTypes)
     fs.rmSync(folderPath, { recursive: true })
 
     const newReport = await prisma.report.create({
@@ -279,7 +282,8 @@ router.get('/docwise/generate/:id', auth, errForward(async (req, res) => {
             claimId: report.claimId
         },
         select: {
-            name: true
+            name: true,
+            docType: true,
         }
     })
 
@@ -289,14 +293,17 @@ router.get('/docwise/generate/:id', auth, errForward(async (req, res) => {
         })
     }
 
+    const docTypes = []
+
     const folderPath = path.join(__dirname, '..', uuid())
     fs.mkdirSync(folderPath);
     await Promise.all(docs.map(async (doc) => {
+        docTypes.push(doc.docType)
         const url = await getObjectUrl(`medical_reports/${doc.name}`)
         return downloadFile(url, path.join(folderPath, doc.name))
     }))
 
-    const docwise = await generateDocwise(folderPath)
+    const docwise = await generateDocwise(folderPath, docTypes)
     fs.rmSync(folderPath, { recursive: true })
 
     return res.status(200).json({ msg: docwise })
